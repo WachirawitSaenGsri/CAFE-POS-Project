@@ -1,0 +1,6 @@
+# myapp/apps.py
+from django.apps import AppConfig
+
+class PosappConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'myapp'
