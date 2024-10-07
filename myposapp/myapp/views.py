@@ -36,13 +36,10 @@ def user_logout(request):
 
 @login_required
 def home(request):
-    return render(request, 'home.html')  # หน้า home หลังจาก login สำเร็จ
+    # ตรวจสอบว่าสามารถดึงข้อมูลจากตาราง Product ได้หรือไม่
+    products = Product.objects.all()  # ดึงข้อมูลสินค้าทั้งหมดจากฐานข้อมูล
+    return render(request, 'home.html', {'products': products})
 
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.models import User
-from django.contrib import messages
-from .models import Member  # นำเข้า Member model
 
 def register(request):
     if request.method == 'POST':
@@ -114,4 +111,6 @@ def Member1(request):
 
 @login_required
 def Addmenu(request):
-    return render(request, 'Addmenu.html')
+    products = Product.objects.all()  # ดึงข้อมูลสินค้าทั้งหมดจากฐานข้อมูล
+    return render(request, 'Addmenu.html', {'products': products})
+    #return render(request, 'Addmenu.html')
