@@ -1,4 +1,8 @@
 # Cafe Pos
+# สร้างenv
+python -m venv djangoenv
+
+djangoenv\Scripts\activate
 # ติดตั้ง
 pip install -r install.txt
 
