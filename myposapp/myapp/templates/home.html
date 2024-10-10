@@ -169,6 +169,24 @@
             flex-wrap: wrap;
         }
 
+        .add-to-order-btn {
+            background-color: #e7e7e7;
+            color: #333;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+            margin-right: 10px;
+            flex: 1;
+            min-width: 50px;
+        }
+
+        .add-to-order-btn:hover {
+            background-color: #ddd;
+        }
+        /* เพิ่มการเปลี่ยนสีเมื่ออยู่ในสถานะ active */
         .option-btn {
             background-color: #e7e7e7;
             color: #333;
@@ -177,7 +195,7 @@
             padding: 6px 12px;
             font-size: 12px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, color 0.3s;
             margin-right: 10px;
             flex: 1;
             min-width: 50px;
@@ -190,6 +208,7 @@
         .option-btn.active {
             background-color: #d4af37;
             color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* เพิ่มเงา */
         }
 
         .break-line {
@@ -320,13 +339,14 @@
 </head>
 <body>
 {% include 'sidebar.html' %}
-
     <!-- Main Content Area -->
     <div class="main-content">
         <!-- Search Container and Time Display -->
-        <div class="search-container">
-            <form class="search-box" action="#" method="get">
-                <input type="text" name="q" placeholder="ค้นหา..." required>
+         <div class="search-container">
+            <form class="search-box" action="{% url 'home' %}" method="get">
+                <!-- เก็บค่า category ไว้ใน form เพื่อให้สามารถส่งค่าไปพร้อมกับการค้นหาได้ -->
+                <input type="hidden" name="category" value="{{ category }}">
+                <input type="text" name="q" placeholder="ค้นหา..." value="{{ query }}" required>
                 <button type="submit">Search</button>
             </form>
 
@@ -345,69 +365,139 @@
         <!-- Category Container -->
         <hr class="my-6 border-gray-300 w-full">
         <div class="category-container">
-            <button class="category-card active">All Menu</button>
-            <button class="category-card">Coffee</button>
-            <button class="category-card">Desserts</button>
-            <button class="category-card">Breakfast</button>
+            <a href="{% url 'home' %}?category=all" class="category-card {% if category == 'all' %}active{% endif %}">All Menu</a>
+            <a href="{% url 'home' %}?category=coffee" class="category-card {% if category == 'coffee' %}active{% endif %}">Coffee</a>
+            <a href="{% url 'home' %}?category=desserts" class="category-card {% if category == 'desserts' %}active{% endif %}">Desserts</a>
+            <a href="{% url 'home' %}?category=breakfast" class="category-card {% if category == 'breakfast' %}active{% endif %}">Breakfast</a>
         </div>
+
 
         <!-- Product List -->
-        <div class="product-list">
-            {% for product in products %}
-            <div class="product-card">
-                <div class="product-image">
-                    {% if product.img_product %}
-                        <img src="{{ product.img_product.url }}" alt="{{ product.product_name }}">
-                    {% else %}
-                        <div>No Image</div>
-                    {% endif %}
-                </div>
-                <div class="product-details">
-                    <h3 class="product-name">{{ product.product_name }}</h3>
-                    <p class="product-description">{{ product.description }}</p>
-                    <p class="product-price">{{ product.price }} ฿</p>
-                </div>
-                <div class="product-options">
-                    <button class="option-btn">SUGAR</button>
-                    <button class="option-btn">FOAM</button>
-                    <button class="option-btn">VANILLA</button>
-                    <button class="option-btn">CARAMEL</button>
+<div class="product-list">
+    {% for product in products %}
+    <div class="product-card">
+        <div class="product-image">
+            {% if product.img_product %}
+                <img src="{{ product.img_product.url }}" alt="{{ product.product_name }}">
+            {% else %}
+                <div>No Image</div>
+            {% endif %}
+        </div>
+        <div class="product-details">
+            <h3 class="product-name">{{ product.product_name }}</h3>
+            <p class="product-description">{{ product.description }}</p>
+            <p class="product-price">{{ product.price }} ฿</p>
+        </div>
+
+        <!-- Product Options -->
+        <div class="product-options">
+            {% if category == 'coffee' %}
+                <!-- แสดงตัวเลือกสำหรับ Coffee -->
+                <button class="option-btn" data-product-id="{{ product.id }}" data-option="SUGAR">SUGAR</button>
+                <button class="option-btn" data-product-id="{{ product.id }}" data-option="FOAM">FOAM</button>
+                <button class="option-btn" data-product-id="{{ product.id }}" data-option="VANILLA">VANILLA</button>
+                <button class="option-btn" data-product-id="{{ product.id }}" data-option="CARAMEL">CARAMEL</button>
+                <div class="break-line"></div>
+                <button class="option-btn" data-product-id="{{ product.id }}" data-option="Hot">Hot</button>
+                <button class="option-btn" data-product-id="{{ product.id }}" data-option="Cold">Cold</button>
+            {% elif category == 'all' %}
+                <!-- แสดงตัวเลือกสำหรับ All Menu เฉพาะสินค้าที่เป็น Coffee -->
+                {% if product.category == 'coffee' %}
+                    <button class="option-btn" data-product-id="{{ product.id }}" data-option="SUGAR">SUGAR</button>
+                    <button class="option-btn" data-product-id="{{ product.id }}" data-option="FOAM">FOAM</button>
+                    <button class="option-btn" data-product-id="{{ product.id }}" data-option="VANILLA">VANILLA</button>
+                    <button class="option-btn" data-product-id="{{ product.id }}" data-option="CARAMEL">CARAMEL</button>
                     <div class="break-line"></div>
-                    <button class="option-btn">Hot</button>
-                    <button class="option-btn">Cold</button>
-                </div>
-            </div>
-            {% endfor %}
+                    <button class="option-btn" data-product-id="{{ product.id }}" data-option="Hot">Hot</button>
+                    <button class="option-btn" data-product-id="{{ product.id }}" data-option="Cold">Cold</button>
+                {% endif %}
+
+                <!-- แสดงปุ่ม "Add to Order" สำหรับ All Menu เฉพาะหมวดหมู่ Desserts และ Breakfast -->
+                {% if product.category == 'desserts' or product.category == 'breakfast' %}
+                    <button class="add-to-order-btn" data-product-id="{{ product.id }}">Add to Order</button>
+                {% endif %}
+            {% else %}
+                <!-- แสดงปุ่ม "Add to Order" สำหรับหมวดหมู่อื่นๆ ยกเว้น Coffee และ All Menu -->
+                <button class="add-to-order-btn" data-product-id="{{ product.id }}">Add to Order</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+    </div>
+
+<!-- Order Details Container -->
+<div class="container-order">
+    <!-- Order Header -->
+    <div class="order-header border-b-2 pb-2 mb-4 w-full flex justify-between items-center">
+        <span>Order #: {% if order %}{{ order.id }}{% else %}New Order{% endif %}</span>
+        <span class="text-lg font-medium text-gray-600">Total Price: {{ total_price }} ฿</span>
+    </div>
+
+    <!-- Form Inputs -->
+    <div class="form-container">
+        <div class="form-input">
+            <label for="phone" class="text-sm font-medium text-gray-600">เบอร์โทร</label>
+            <input type="text" id="phone" name="phone" placeholder="0888888888" value="{% if order %}{{ order.customer_phone }}{% else %}{% endif %}" />
+        </div>
+        <div class="form-input">
+            <label for="name" class="text-sm font-medium text-gray-600">ชื่อ</label>
+            <input type="text" id="name" name="name" placeholder="ชื่อผู้สั่ง" value="{% if order %}{{ order.customer_name }}{% else %}{% endif %}" />
         </div>
     </div>
 
-    <!-- Order Details Container -->
-    <div class="container-order">
-        <!-- Order Header -->
-        <div class="order-header">
-            <span>Order #: 12564878</span>
-        </div>
-
-        <!-- Form Inputs -->
-        <div class="form-container">
-            <div class="form-input">
-                <label for="phone">เบอร์โทร</label>
-                <input type="text" id="phone" name="phone" placeholder="0888888888" />
+    <!-- Cart/Bag Information -->
+    <div class="cart-container w-full mt-4">
+    {% if order and order.order_details.all %}
+        <!-- แสดงรายการใน Order Detail -->
+        {% for detail in order.order_details.all %}
+            <div class="order-item flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50 rounded-lg shadow-sm mb-2">
+                <div class="flex items-center gap-4">
+                    <!-- ภาพสินค้า -->
+                    <div class="product-image w-20 h-20 bg-white rounded-md shadow-inner flex items-center justify-center overflow-hidden ">
+                        {% if detail.product.img_product %}
+                            <img src="{{ detail.product.img_product.url }}" alt="{{ detail.product.product_name }}" class="w-full h-full object-cover">
+                        {% else %}
+                            <span class="text-gray-500">No Image</span>
+                        {% endif %}
+                    </div>
+                    <!-- รายละเอียดสินค้า -->
+                    <div class="order-details">
+                        <h3 class="text-lg font-medium text-gray-700">{{ detail.product.product_name }}</h3>
+                        <!-- แสดงผลตัวเลือกที่เลือกไว้ -->
+                        <p class="text-sm text-gray-500">{{ detail.options }}</p>
+                    </div>
+                </div>
+                <!-- จำนวนสินค้า -->
+                <div class="order-item-quantity flex items-center bg-white p-2 rounded-lg shadow-inner">
+                    <button class="update-quantity bg-gray-300 text-gray-700 rounded-full px-3 py-1 transition-all duration-200 hover:bg-gray-400" data-action="decrement" data-order-detail-id="{{ detail.id }}">-</button>
+                    <span id="quantity-{{ detail.id }}" class="mx-4 text-sm font-semibold text-gray-700">{{ detail.quantity }}</span>
+                    <button class="update-quantity bg-gray-300 text-gray-700 rounded-full px-3 py-1 transition-all duration-200 hover:bg-gray-400" data-action="increment" data-order-detail-id="{{ detail.id }}">+</button>
+                </div>
+                <!-- ราคาและปุ่มลบ -->
+                <div class="order-item-price text-lg font-medium text-gray-700">{{ detail.price }} ฿</div>
+                <button class="delete-order-detail text-red-500" data-order-detail-id="{{ detail.id }}">🗑️</button>
             </div>
-            <div class="form-input">
-                <label for="name">ชื่อ</label>
-                <input type="text" id="name" name="name" placeholder="ชื่อผู้สั่ง" />
-            </div>
-        </div>
+      {% endfor %}
+    {% else %}
+        <!-- ถ้าไม่มี order แสดงข้อความว่าไม่มีสินค้าใน order -->
+        <img src="{% static 'no-task.png' %}" alt="Empty Bag Icon" class="cart-icon" />
+        <div class="cart-message">YOUR BAG IS EMPTY</div>
+    {% endif %}
 
-        <!-- Cart/Bag Information -->
-        <div class="cart-container">
-            <img src="{% static 'no-task.png' %}" alt="Empty Bag Icon" class="cart-icon" />
-            <div class="cart-message">YOUR BAG IS EMPTY</div>
-            <a href="#" class="pay-now-btn">PAY NOW</a>
+        <!-- เพิ่มแถบแสดง Total Quantity และ Total Price -->
+        {% if order and order.order_details.all %}
+        <div class="total-summary border-t-2 pt-4 mt-4 w-full flex justify-between text-lg font-medium text-gray-700">
+            <span>Total Quantity: {{ total_quantity }}</span> <!-- แสดงจำนวนสินค้าในคำสั่งซื้อทั้งหมด -->
+            <span>Total Price: {{ total_price }} ฿</span> <!-- แสดงราคารวมของสินค้าในคำสั่งซื้อทั้งหมด -->
         </div>
+        {% endif %}
+        
+        <!-- ปุ่มชำระเงิน -->
+        <a href="#" class="pay-now-btn mt-6">PAY NOW</a>
     </div>
 </div>
+
 
 <script>
     function updateTime() {
@@ -427,6 +517,198 @@
     }
     updateTime();
     setInterval(updateTime, 1000);
+</script>
+<script>
+    document.querySelectorAll('.category-card').forEach(button => {
+        button.addEventListener('click', function() {
+            const category = this.getAttribute('data-category');
+
+            // ลบ class 'active' จากปุ่มอื่นๆ
+            document.querySelectorAll('.category-card').forEach(btn => btn.classList.remove('active'));
+
+            // เพิ่ม class 'active' ให้ปุ่มที่ถูกกด
+            this.classList.add('active');
+
+            // เรียกใช้ AJAX เพื่อส่ง category ไป backend
+            fetch(`?category=${category}`)
+                .then(response => response.text())
+                .then(html => {
+                    // นำผลลัพธ์จาก backend มาอัปเดตในหน้า
+                    document.querySelector('.product-list').innerHTML = html;
+                })
+                .catch(error => console.log(error));
+        });
+    });
+</script>
+<script>// home.html
+
+// เมื่อกดปุ่ม "Add to Order" หรือกดตัวเลือกต่างๆ
+document.querySelectorAll('.option-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const product_id = this.getAttribute('data-product-id');
+        const option = this.getAttribute('data-option');
+
+        // Toggle สถานะ active ของปุ่ม
+        this.classList.toggle('active');
+
+        // เก็บตัวเลือกทั้งหมดที่ถูกเลือกในปัจจุบัน
+        const selectedOptions = [...document.querySelectorAll(`.option-btn[data-product-id="${product_id}"].active`)]
+            .map(btn => btn.getAttribute('data-option'))
+            .join(',');
+
+        console.log(`Selected Options: ${selectedOptions}`);  // ตรวจสอบข้อมูลตัวเลือกที่เลือก
+
+        // ตรวจสอบว่าผู้ใช้ได้เลือกตัวเลือกครบทั้งสองกลุ่มหรือไม่
+        const requiredOptions1 = ['SUGAR', 'FOAM', 'VANILLA', 'CARAMEL'];
+        const requiredOptions2 = ['Hot', 'Cold'];
+
+        // แยกตัวเลือกออกเป็นสองกลุ่ม
+        const selectedOptionsSet = new Set(selectedOptions.split(','));
+        const hasRequiredOptions1 = requiredOptions1.some(option => selectedOptionsSet.has(option));
+        const hasRequiredOptions2 = requiredOptions2.some(option => selectedOptionsSet.has(option));
+
+        // ถ้าเลือกครบทั้งสองกลุ่มแล้วค่อยอนุญาตให้เพิ่มไปใน order ได้
+        if (hasRequiredOptions1 && hasRequiredOptions2) {
+            console.log(`Sending data to backend: Product ID: ${product_id}, Options: ${selectedOptions}`);
+
+            // ส่งข้อมูลไปยัง backend ผ่าน AJAX
+            fetch("{% url 'add_to_order' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    'product_id': product_id,
+                    'options': selectedOptions,  // ส่ง options ในรูปแบบที่จัดเก็บ
+                    'quantity': 1  // จำนวนเริ่มต้น
+                })
+            }).then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Order updated:', data);
+                    window.location.reload(); // โหลดหน้าใหม่เพื่ออัปเดตข้อมูล
+                } else {
+                    console.error('Error:', data.message);  // แสดงข้อความแจ้งเตือนเมื่อเกิด Error
+                }
+            }).catch(error => console.log(error));
+        } else {
+            // ถ้าเลือกตัวเลือกไม่ครบ ให้แสดงข้อความแจ้งเตือน
+            alert('กรุณาเลือกตัวเลือกอย่างน้อยหนึ่งรายการจากทั้งสองกลุ่มก่อนเพิ่มไปในคำสั่งซื้อ');
+        }
+    });
+});
+
+// เมื่อกดปุ่ม "+" หรือ "-"
+document.querySelectorAll('.update-quantity').forEach(button => {
+    button.addEventListener('click', function() {
+        const order_detail_id = this.getAttribute('data-order-detail-id');
+        const action = this.getAttribute('data-action');
+        const quantityElement = document.querySelector(`#quantity-${order_detail_id}`);
+        let quantity = parseInt(quantityElement.innerText);
+
+        if (action === 'increment') quantity += 1;
+        else if (action === 'decrement' && quantity > 1) quantity -= 1;
+
+        // ส่งข้อมูลไปยัง backend ผ่าน AJAX
+        fetch("{% url 'update_order_detail' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                'order_detail_id': order_detail_id,
+                'quantity': quantity
+            })
+        }).then(response => response.json())
+          .then(data => {
+              if (data.status === 'success') {
+                  quantityElement.innerText = quantity;  // อัปเดตจำนวน
+                  window.location.reload();  // โหลดหน้าใหม่
+              } else {
+                  console.error(data.message);
+              }
+          }).catch(error => console.log(error));
+    });
+});
+
+// เมื่อกดปุ่ม "ลบ"
+document.querySelectorAll('.delete-order-detail').forEach(button => {
+    button.addEventListener('click', function() {
+        const order_detail_id = this.getAttribute('data-order-detail-id');
+
+        // ส่งข้อมูลไปยัง backend ผ่าน AJAX
+        fetch("{% url 'delete_order_detail' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                'order_detail_id': order_detail_id
+            })
+        }).then(response => response.json())
+          .then(data => {
+              if (data.status === 'success') {
+                  window.location.reload();  // โหลดหน้าใหม่
+              } else {
+                  console.error(data.message);
+              }
+          }).catch(error => console.log(error));
+    });
+});
+</script>
+<script>
+    fetch("{% url 'add_to_order' %}", {
+    method: 'POST',
+    headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+        'product_id': product_id,
+        'options': selectedOptions,
+        'quantity': 1  // จำนวนเริ่มต้น
+    })
+}).then(response => response.json())
+  .then(data => {
+      if (data.status === 'success') {
+          console.log('Options updated successfully.');
+          window.location.reload(); // โหลดหน้าใหม่เพื่ออัปเดตข้อมูลใน order detail
+      }
+  }).catch(error => console.log(error));
+
+</script>
+<script>// เมื่อกดปุ่ม "Add to Order"
+document.querySelectorAll('.add-to-order-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const product_id = this.getAttribute('data-product-id');
+        console.log(`Product ID: ${product_id}`);  // ตรวจสอบว่าได้ค่า product_id หรือไม่
+
+        // ส่งข้อมูลไปยัง backend ผ่าน AJAX โดยไม่ต้องเลือก options
+        fetch("{% url 'add_to_order' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                'product_id': product_id,
+                'quantity': 1  // จำนวนเริ่มต้นเป็น 1
+            })
+        }).then(response => response.json())
+          .then(data => {
+              console.log('Response:', data);  // แสดงข้อมูลที่ได้รับจาก backend
+              if (data.status === 'success') {
+                  console.log('Order updated:', data);
+                  window.location.reload(); // โหลดหน้าใหม่เพื่ออัปเดต order detail
+              } else {
+                  console.error('Error:', data.message);  // แสดงข้อความแจ้งเตือน
+              }
+          }).catch(error => console.log(error));
+    });
+});
 </script>
 </body>
 </html>
