@@ -27,7 +27,7 @@ python manage.py migrate
 # โหลดข้อมูลเข้า
 python manage.py load_xlsx -i myapp/fixtures/DATA.xlsx
 
-ข้อมูลเข้าแต่ Category มันไม่ถูก ต้องไปเลือก Category ใหม่หมด(รวมถึงอันที่ถูก)ถึงจะมีให้กดเลือกซื้อ http://127.0.0.1:8000/admin/
+ข้อมูลเข้าแต่ Category มันไม่ถูก ต้องไปเลือก Category ใหม่หมด(รวมถึงอันที่ถูก)ถึงจะมีให้กดเลือกซื้อ http://127.0.0.1:8000/admin/ ใน Products
 
 python manage.py createsuperuser
 # รันtailwind
