@@ -1,3 +1,4 @@
+{#login.html#}
 {% load static tailwind_tags %}
 <!DOCTYPE html>
 <html lang="en">
@@ -47,8 +48,8 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             overflow: hidden;
             width: 80%; /* ปรับความกว้างให้ครอบคลุม 80% ของหน้าจอ */
-            max-width: 1600px; /* กำหนดความกว้างสูงสุด */
-            min-height: 80vh; /* ปรับความสูงขั้นต่ำให้ครอบคลุม 80% ของความสูงหน้าจอ */
+            max-width: 1200px;
+            min-height: 70vh;
         }
         .login-left {
             flex: 1;
@@ -179,7 +180,7 @@
             </form>
 
             <div class="link">
-                <a href="#">Forget Password?</a>
+                <a href="{% url "forgot_password" %}">Forget Password?</a>
             </div>
             <div class="register-link">
                 Don't Have an account?

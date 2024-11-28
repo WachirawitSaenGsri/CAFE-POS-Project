@@ -1,19 +1,32 @@
 {% load static tailwind_tags %}
 <!DOCTYPE html>
 <html lang="en">
-	<head>
+<head>
     <title>Django Tailwind</title>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<meta http-equiv="X-UA-Compatible" content="ie=edge">
-		{% tailwind_css %}
-	</head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
-	<body class="bg-gray-50 font-serif leading-normal tracking-normal">
-		<div class="container mx-auto">
-			<section class="flex items-center justify-center h-screen">
-				<h1 class="text-5xl">Django + Tailwind = ❤️</h1>
-			</section>
-		</div>
-	</body>
+    {% tailwind_css %}
+    <!-- คุณสามารถเพิ่มไฟล์ CSS หรือ Script อื่นๆ ที่นี่ -->
+</head>
+<body class="bg-gray-50 font-serif leading-normal tracking-normal">
+    <!-- Navbar -->
+    <header>
+        <!-- เพิ่มเมนูหรือส่วนต่าง ๆ ของ Navbar ที่ต้องการ -->
+    </header>
+
+    <div class="container mx-auto">
+        <!-- นี่จะเป็นพื้นที่สำหรับแทรกเนื้อหาจากเทมเพลตอื่นๆ -->
+        {% block content %}
+        <!-- เนื้อหาจะถูกแทรกที่นี่ -->
+        {% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <!-- เพิ่มเนื้อหาของ footer ที่นี่ -->
+    </footer>
+
+</body>
 </html>

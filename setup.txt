@@ -1,0 +1,42 @@
+python -m venv myproenv
+myproenv\Scripts\activate
+
+pip install -r install.txt
+
+#create project
+django-admin startproject myposapp
+
+#create app
+python manage.py startapp posapp
+
+#ใส่ใน setting
+INSTALLED_APPS = [
+  'posapp',
+  'tailwind',
+]
+
+#สร้าง tailwind
+python manage.py tailwind init
+
+#ใส่ใน setting
+
+INSTALLED_APPS = [,
+  'theme',
+  'django_browser_reload',
+]
+
+TAILWIND_APP_NAME = 'theme'
+
+NPM_BIN_PATH = r"C:\Program Files\nodejs\npm.cmd"
+
+MIDDLEWARE = [
+  # ...
+  "django_browser_reload.middleware.BrowserReloadMiddleware",
+  # ...
+]
+
+#สร้าง ฐานข้อมูล
+CREATE DATABASE POSDB CHARACTER SET utf8;
+GRANT ALL PRIVILEGES ON POSDB.* TO 'Got'@'localhost';
+SET GLOBAL transaction_isolation = 'READ-COMMITTED';
+FLUSH PRIVILEGES;

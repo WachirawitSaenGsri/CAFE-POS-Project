@@ -1,8 +1,4 @@
 # Cafe Pos
-# สร้างenv
-python -m venv djangoenv
-
-djangoenv\Scripts\activate
 # ติดตั้ง
 pip install -r install.txt
 
@@ -36,3 +32,4 @@ python manage.py createsuperuser
 python manage.py tailwind start
 
 python manage.py runserver
+

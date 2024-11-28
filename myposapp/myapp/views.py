@@ -1,11 +1,10 @@
 # myapp/views.py
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout , authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from myapp.models import Member,Product,Order, OrderDetail
-from .forms import UserCredentialForm
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponseRedirect
 from .models import Product
@@ -13,25 +12,24 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
 import json
+from django.contrib.auth.hashers import make_password, check_password
+from django.views.decorators.csrf import csrf_protect
+from django.core.paginator import Paginator
+from .forms import *
+from django.db import transaction
 def user_login(request):
-    # ตรวจสอบว่ามีการส่งข้อมูลเข้ามาหรือไม่
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
 
-        # ตรวจสอบ username และ password จากตาราง Member
-        try:
-            member = Member.objects.get(username=username, password=password)
-            if member:
-                # สร้างผู้ใช้ชั่วคราวใน Django Auth เพื่อเข้าสู่ระบบ
-                user, created = User.objects.get_or_create(username=member.username)
-                login(request, user)
-                return redirect('home')  # ถ้า login สำเร็จจะ redirect ไปหน้า home
-            else:
-                messages.error(request, 'Username หรือ Password ไม่ถูกต้อง')
-        except Member.DoesNotExist:
-            messages.error(request, 'Username หรือ Password ไม่ถูกต้อง')
-    return render(request, 'login.html')  # ถ้าเป็น GET จะให้แสดงหน้า login
+        # ใช้ Django Auth ในการตรวจสอบ username และ password
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('home')
+        else:
+            messages.error(request, 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง')
+    return render(request, 'login.html')
 
 def user_logout(request):
     logout(request)
@@ -46,24 +44,69 @@ def register(request):
         confirm_password = request.POST['confirm_password']
 
         if password == confirm_password:
-            # ตรวจสอบว่า username นี้มีอยู่ในระบบแล้วหรือไม่
             if not User.objects.filter(username=username).exists():
-                # สร้างผู้ใช้ใหม่ใน User model
-                user = User.objects.create_user(username=username, email=email, password=password)
-                user.save()
-
-                # บันทึกข้อมูลผู้ใช้ลงใน Member model ด้วย
-                member = Member(username=username, password=password)
-                member.save()
-
-                # แสดงข้อความแจ้งเตือนความสำเร็จในการสมัครสมาชิก
-                messages.success(request, 'สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบด้วยบัญชีผู้ใช้ของคุณ')
-                return redirect('login')  # เปลี่ยนเป็นการ redirect ไปหน้า login แทน
+                if not User.objects.filter(email=email).exists():  # ตรวจสอบว่ามีอีเมลซ้ำหรือไม่
+                    user = User.objects.create_user(username=username, email=email, password=password)
+                    Member.objects.create(user=user, extra_info="Default info")
+                    messages.success(request, 'การลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบ.')
+                    return redirect('login')
+                else:
+                    messages.error(request, 'อีเมลนี้ถูกใช้งานแล้ว')
             else:
-                messages.error(request, 'Username นี้มีอยู่แล้ว')
+                messages.error(request, 'ชื่อผู้ใช้นี้ถูกใช้งานแล้ว')
         else:
             messages.error(request, 'รหัสผ่านไม่ตรงกัน')
     return render(request, 'register.html')
+
+
+
+def forgot_password(request):
+    if request.method == 'POST':
+        email = request.POST['email']
+        users = User.objects.filter(email=email)
+
+        if users.exists():
+            # Redirect to second step: password reset page
+            return render(request, 'forgot_password2.html', {'email': email})
+        else:
+            messages.error(request, 'ไม่พบบัญชีที่ใช้ที่อยู่อีเมลนี้')
+            return redirect('forgot_password')
+
+    return render(request, 'forgot_password.html')
+@csrf_protect
+def reset_password(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+
+        if new_password != confirm_password:
+            messages.error(request, 'รหัสผ่านไม่ตรงกัน โปรดลองอีกครั้ง')
+            return render(request, 'forgot_password2.html', {'email': email})
+
+        if len(new_password) < 8:
+            messages.error(request, 'รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร')
+            return render(request, 'forgot_password2.html', {'email': email})
+
+        if not any(char.isdigit() for char in new_password):
+            messages.error(request, 'รหัสผ่านต้องมีอย่างน้อยหนึ่งตัวเลข')
+            return render(request, 'forgot_password2.html', {'email': email})
+
+        if not any(char.isalpha() for char in new_password):
+            messages.error(request, 'รหัสผ่านต้องมีตัวอักษรอย่างน้อยหนึ่งตัว')
+            return render(request, 'forgot_password2.html', {'email': email})
+
+        try:
+            user = User.objects.get(email=email)
+            user.password = make_password(new_password)
+            user.save()
+            messages.success(request, 'รหัสผ่านของคุณถูกรีเซ็ตเรียบร้อยแล้ว! กรุณาเข้าสู่ระบบ.')
+            return redirect('login')
+        except User.DoesNotExist:
+            messages.error(request, 'ไม่พบบัญชีที่ใช้ที่อยู่อีเมลนี้')
+            return redirect('forgot_password')
+
+    return redirect('forgot_password')
 
 @login_required
 def Menu(request):
@@ -96,61 +139,76 @@ def Member1(request):
 @login_required
 def Addmenu(request):
     products = Product.objects.all()  # ดึงข้อมูลสินค้าทั้งหมดจากฐานข้อมูล
-    return render(request, 'Addmenu.html', {'products': products})
-    #return render(request, 'Addmenu.html')
+
+    # รับหมายเลขหน้าจาก URL (ค่าเริ่มต้นคือหน้า 1)
+    page_number = request.GET.get('page', 1)
+
+    # แบ่งสินค้าเป็นหน้าละ 10 รายการ
+    paginator = Paginator(products, 12)
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'Addmenu.html', {'products': page_obj})
 
 @login_required
 def home(request):
-    query = request.GET.get('q')  # รับค่าคำค้นหา
-    category = request.GET.get('category', 'all')  # รับค่า category, ตั้งค่าเริ่มต้นเป็น 'all'
+    query = request.GET.get('q', '')  # รับค่าคำค้นหา
+    category = request.GET.get('category', 'all')  # รับหมวดหมู่
+    page_number = request.GET.get('page', 1)  # รับหมายเลขหน้า
 
-    # เริ่มจากดึงสินค้าทั้งหมด
+    # ดึงหมวดหมู่ทั้งหมดที่มีอยู่ในฐานข้อมูล
+    categories = Product.objects.values('category').distinct()  # ดึงหมวดหมู่ทั้งหมดจากฐานข้อมูล
+
+    # ดึงสินค้าทั้งหมด
     products = Product.objects.all()
 
-    # ถ้ามีการค้นหา ให้กรองข้อมูลด้วยคำค้นหา
+    # กรองสินค้าตามคำค้นหา (query)
     if query:
         products = products.filter(Q(product_name__icontains=query) | Q(description__icontains=query))
 
-    # กรองข้อมูลตามหมวดหมู่ที่เลือก (ยกเว้น 'all' ซึ่งหมายถึงทุกหมวดหมู่)
+    # กรองสินค้าตามหมวดหมู่
     if category != 'all':
         products = products.filter(category__iexact=category)
 
-    # ดึงคำสั่งซื้อล่าสุดที่ยังไม่สมบูรณ์
+    # แบ่งสินค้าเป็นหน้าละ 10 รายการ
+    paginator = Paginator(products, 10)
+    page_obj = paginator.get_page(page_number)
+
+    # ดึงคำสั่งซื้อที่ยังไม่สมบูรณ์ล่าสุด
     order = Order.objects.filter(customer_name='GOT').last()
 
-    # ตรวจสอบว่ามีคำสั่งซื้ออยู่หรือไม่
     total_price = 0
     total_quantity = 0
     if order:
-        # คำนวณจำนวนรวมและราคารวม
         total_price = sum(detail.price for detail in order.order_details.all())
         total_quantity = sum(detail.quantity for detail in order.order_details.all())
 
+    # ฟอร์มสำหรับกรอกข้อมูลลูกค้า
+    form = CustomerInfoForm()
+
     return render(request, 'home.html', {
-        'products': products,
+        'page_obj': page_obj,
         'query': query,
         'category': category,
-        'order': order,  # ส่งคำสั่งซื้อ (order) ไปยังเทมเพลต
-        'total_price': total_price,  # ส่งราคารวมไปยังเทมเพลต
-        'total_quantity': total_quantity  # ส่งจำนวนรวมไปยังเทมเพลต
+        'categories': categories,  # ส่งหมวดหมู่ทั้งหมด
+        'order': order,
+        'total_price': total_price,
+        'total_quantity': total_quantity,
+        'form': form  # ส่งฟอร์มข้อมูลลูกค้า
     })
 
+# Add product to order
 @csrf_exempt
 def add_to_order(request):
     if request.method == 'POST':
         try:
-            # รับข้อมูล JSON จาก Frontend
             data = json.loads(request.body)
             product_id = data.get('product_id')
-            options = data.get('options', '')  # รับค่า options จาก frontend เช่น "ESPRESSO,SUGAR,HOT"
+            options = data.get('options', '')  # รับค่า options จาก frontend เช่น "SUGAR,FOAM,HOT"
             quantity = data.get('quantity', 1)
-
-            print(f"Product ID: {product_id}, Options: {options}, Quantity: {quantity}")  # ตรวจสอบข้อมูลที่ได้รับ
 
             # ตรวจสอบว่ามีสินค้าที่ส่งมาจาก request หรือไม่
             product = Product.objects.get(id=product_id)
 
-            # ลบเงื่อนไขการตรวจสอบ options เพื่ออนุญาตให้สามารถเพิ่มสินค้าได้แม้ options จะว่าง
             # ตรวจสอบว่ามี Order ที่ยังไม่ได้ปิดหรือไม่
             order, created = Order.objects.get_or_create(
                 customer_name='GOT',  # ใช้ข้อมูลชั่วคราวก่อน
@@ -167,15 +225,12 @@ def add_to_order(request):
 
             if not created:  # ถ้ามีอยู่แล้ว ให้ปรับจำนวนและ options
                 order_detail.quantity += quantity
-                # เพิ่ม options เข้าไปในรายการเดิมโดยไม่ซ้ำกัน
                 existing_options = set(order_detail.options.split(',')) if order_detail.options else set()
                 new_options = set(options.split(','))
                 combined_options = ', '.join(existing_options.union(new_options))
-                order_detail.options = combined_options  # อัปเดต options ใหม่
+                order_detail.options = combined_options
                 order_detail.price = order_detail.quantity * product.price
                 order_detail.save()
-
-            print(f"Order Detail Updated: {order_detail}")  # ตรวจสอบว่า OrderDetail ถูกอัปเดตหรือไม่
 
             # คำนวณราคาใหม่ของคำสั่งซื้อ
             order.total_price = sum(item.price for item in order.order_details.all())
@@ -183,28 +238,28 @@ def add_to_order(request):
 
             return JsonResponse({'status': 'success', 'message': 'Added to order successfully'})
         except Product.DoesNotExist:
-            print('Product not found')  # เพิ่มข้อความสำหรับการดีบัก
             return JsonResponse({'status': 'error', 'message': 'Product not found'})
         except Exception as e:
-            print(f"Error: {str(e)}")  # แสดงข้อความ Error
             return JsonResponse({'status': 'error', 'message': str(e)})
+
     return JsonResponse({'status': 'invalid method'})
+
 @login_required
 @csrf_exempt
 def update_order_detail(request):
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)  # รับข้อมูล JSON จาก request body
+            data = json.loads(request.body)
             order_detail_id = data.get('order_detail_id')
             quantity = int(data.get('quantity', 1))
 
-            # ตรวจสอบว่ามี OrderDetail ที่สอดคล้องกับ ID นี้หรือไม่
+            # ตรวจสอบว่ามี OrderDetail ที่ตรงกับ ID นี้
             order_detail = get_object_or_404(OrderDetail, id=order_detail_id)
             order_detail.quantity = quantity
             order_detail.price = order_detail.product.price * quantity
             order_detail.save()
 
-            # อัปเดตราคาทั้งหมดของคำสั่งซื้อ
+            # คำนวณราคาใหม่ของคำสั่งซื้อ
             order_detail.order.total_price = sum([item.price for item in order_detail.order.order_details.all()])
             order_detail.order.save()
 
@@ -219,7 +274,7 @@ def update_order_detail(request):
 def delete_order_detail(request):
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)  # รับข้อมูล JSON จาก request body
+            data = json.loads(request.body)
             order_detail_id = data.get('order_detail_id')
 
             # ตรวจสอบว่า OrderDetail นี้มีอยู่ในระบบหรือไม่
@@ -234,3 +289,83 @@ def delete_order_detail(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'invalid method'})
+
+
+@login_required
+@transaction.atomic
+def PayNow(request):
+    if request.method == 'POST':
+        # Get the customer info from the form
+        form = CustomerInfoForm(request.POST)
+
+        if form.is_valid():
+            customer_name = form.cleaned_data['customer_name']
+            customer_phone = form.cleaned_data['customer_phone']
+
+            # Get the latest order or create a new one
+            order = Order.objects.filter(
+                customer_name='GOT').last()  # Temporary identifier (replace 'GOT' with actual session or user data)
+
+            if order:
+                # Update the order with customer info
+                order.customer_name = customer_name
+                order.customer_phone = customer_phone
+                order.save()
+
+                # Display a success message
+                messages.success(request, 'ข้อมูลลูกค้าถูกบันทึกเรียบร้อยแล้ว!')
+            else:
+                messages.error(request, 'ไม่พบคำสั่งซื้อในระบบ! กรุณาลองใหม่.')
+
+            # Redirect back to the home page (or wherever you want)
+            return redirect('home')
+        else:
+            # If form is not valid, show errors
+            messages.error(request, 'กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง.')
+
+    # If the method is not POST, just render the page (for any errors or initial load)
+    return redirect('home')
+
+@login_required
+def add_product(request):
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return JsonResponse({'status': 'success', 'message': 'Product added successfully!'})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Form is not valid.'})
+    else:
+        form = ProductForm()
+
+    return render(request, 'Addmenu.html', {'form': form})
+# View สำหรับการแก้ไขสินค้า
+@login_required
+def edit_product(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+
+    if request.method == 'POST':
+        product.product_name = request.POST['product_name']
+        product.description = request.POST['description']
+        product.price = request.POST['price']
+        product.category = request.POST['category']
+
+        img_product = request.FILES.get('img_product')
+        if img_product:
+            product.img_product = img_product
+
+        product.save()
+        messages.success(request, 'Product updated successfully!')
+        return redirect('addmenu')
+
+    return render(request, 'component/edit_product.html', {'product': product})
+# View สำหรับการลบสินค้า
+@login_required
+def delete_product(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    product.delete()
+    messages.success(request, 'Product deleted successfully!')
+    return redirect('addmenu')
+@login_required
+def add_category(request):
+    pass

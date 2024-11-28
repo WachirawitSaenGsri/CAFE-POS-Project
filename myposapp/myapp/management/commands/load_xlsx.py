@@ -32,15 +32,6 @@ class Command(BaseCommand):
         models = ['Member', 'Product']
         app = apps.get_app_config('myapp')
 
-        # กำหนดการแมพค่า Category เพื่อให้ตรงกับความต้องการ
-        category_map = {
-            'dessert': 'Desserts',
-            'desserts': 'Desserts',
-            'breakfast': 'Breakfast',
-            'coffee': 'Coffee',
-            'coffe': 'Coffee'
-        }
-
         for name in models:
             print(f'Loading data for {name}')
             # ตรวจสอบว่า sheet ใน Excel มีข้อมูลโมเดลนั้นหรือไม่
@@ -70,24 +61,6 @@ class Command(BaseCommand):
 
                     # ลบช่องว่างหรืออักขระพิเศษในฟิลด์ข้อมูล
                     data = {k: (v.strip() if isinstance(v, str) else v) for k, v in data.items()}
-
-                    # ตรวจสอบและทำความสะอาดฟิลด์ category
-                    if 'category' in data and data['category']:
-                        # ลบอักขระพิเศษ เช่น \xa0, \n, และจัดการช่องว่างไม่พึงประสงค์ใน category
-                        category_clean = ' '.join(''.join(
-                            c for c in data['category'] if c.isalnum() or c.isspace()
-                        ).split()).strip().lower()  # ทำความสะอาด category
-                        print(f"Original Category: '{data['category']}' -> Cleaned Category: '{category_clean}'")
-
-                        # แปลง category ให้ตรงกับค่าใน category_map
-                        if category_clean in category_map:
-                            data['category'] = category_map[category_clean]
-                        else:
-                            # ถ้าหาไม่เจอในแมพ ให้ใช้ค่าดั้งเดิม
-                            print(f"Category '{category_clean}' not found in category_map, using original value.")
-                            data['category'] = data['category']
-
-                        print(f"Mapped Category: {data['category']}")
 
                     # ตรวจสอบข้อมูลก่อนดำเนินการใดๆ
                     print(f"Parsed Data (Before Processing): {data}")
