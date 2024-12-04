@@ -13,7 +13,7 @@ python manage.py migrate
 # โหลดข้อมูลเข้า
 python manage.py load_xlsx -i myapp/fixtures/DATA.xlsx
 
-# รันtailwind
+# รัน
 python manage.py tailwind start
 
 python manage.py runserver
