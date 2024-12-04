@@ -139,15 +139,14 @@ def Member1(request):
 @login_required
 def Addmenu(request):
     products = Product.objects.all()  # ดึงข้อมูลสินค้าทั้งหมดจากฐานข้อมูล
-
-    # รับหมายเลขหน้าจาก URL (ค่าเริ่มต้นคือหน้า 1)
     page_number = request.GET.get('page', 1)
 
-    # แบ่งสินค้าเป็นหน้าละ 10 รายการ
-    paginator = Paginator(products, 12)
+    paginator = Paginator(products, 12)  # แบ่งสินค้าเป็นหน้าละ 12 รายการ
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'Addmenu.html', {'products': page_obj})
+    form = ProductForm()  # ฟอร์มสำหรับการเพิ่มสินค้า
+
+    return render(request, 'Addmenu.html', {'products': page_obj, 'form': form})
 
 @login_required
 def home(request):
@@ -329,12 +328,11 @@ def PayNow(request):
 @login_required
 def add_product(request):
     if request.method == 'POST':
-        form = ProductForm(request.POST, request.FILES)
+        form = ProductForm(request.POST, request.FILES)  # รับข้อมูลจากฟอร์มและไฟล์
         if form.is_valid():
-            form.save()
-            return JsonResponse({'status': 'success', 'message': 'Product added successfully!'})
-        else:
-            return JsonResponse({'status': 'error', 'message': 'Form is not valid.'})
+            form.save()  # บันทึกข้อมูลสินค้าใหม่ลงฐานข้อมูล
+            messages.success(request, 'Product added successfully!')
+            return redirect('addmenu')  # เมื่อเพิ่มสินค้าเสร็จแล้ว ให้กลับไปยังหน้า Addmenu
     else:
         form = ProductForm()
 
@@ -366,6 +364,23 @@ def delete_product(request, product_id):
     product.delete()
     messages.success(request, 'Product deleted successfully!')
     return redirect('addmenu')
+
+
+@csrf_exempt
 @login_required
 def add_category(request):
-    pass
+    if request.method == 'POST':
+        category_name = request.POST.get('category_name')
+
+        if category_name:
+            # เช็คว่าหมวดหมู่นี้มีอยู่แล้วหรือไม่
+            if not Product.objects.filter(category=category_name).exists():
+                # เพิ่มหมวดหมู่ใหม่
+                # สามารถใช้ Product หรือสร้าง Model แยก Category ตามต้องการ
+                Product.objects.create(category=category_name)
+                return JsonResponse({'status': 'success', 'message': 'Category added successfully'})
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Category already exists'})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Category name is required'})
+    return JsonResponse({'status': 'invalid method'})

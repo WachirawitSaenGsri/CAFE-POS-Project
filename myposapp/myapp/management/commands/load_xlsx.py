@@ -1,126 +1,99 @@
-import os, traceback
+import os
 from django.apps import apps
 from django.db.models import *
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from openpyxl import load_workbook
 from myapp.models import *
 
 
 class Command(BaseCommand):
-    help = '''โหลดข้อมูลจาก xlsx
-    python manage.py load_xlsx -i myapp/fixtures/DATA.xlsx
+    help = '''Load data from an Excel file into the database.
+    Usage: python manage.py load_xlsx -i myapp/fixtures/DATA.xlsx
     '''
 
     def add_arguments(self, parser):
-        parser.add_argument('-i', '--input', type=str, default='myapp/fixtures/DATA.xlsx')
-        parser.add_argument('-s', '--skip_id', type=bool, default=False)
+        parser.add_argument('-i', '--input', type=str, required=True, help='Path to the Excel file')
+        parser.add_argument('-s', '--skip_id', action='store_true', help='Skip ID fields in data loading')
 
     def handle(self, *args, **options):
-        # กำหนดไฟล์ที่ต้องการอ่านข้อมูล
-        if options['input']:
-            xlsx = options['input']
-
-        # โหลดไฟล์ Excel
-        try:
-            wb = load_workbook(xlsx)
-            print(f"Loaded workbook: {xlsx}")
-        except Exception as e:
-            print(f"Error loading Excel file: {str(e)}")
+        # Validate and load the Excel file
+        xlsx_path = options['input']
+        if not os.path.exists(xlsx_path):
+            self.stderr.write(f"Error: File '{xlsx_path}' not found.")
             return
 
-        # กำหนดโมเดลที่ต้องการโหลดข้อมูล
-        models = ['Member', 'Product']
-        app = apps.get_app_config('myapp')
+        try:
+            workbook = load_workbook(xlsx_path)
+            self.stdout.write(f"Loaded workbook: {xlsx_path}")
+        except Exception as e:
+            self.stderr.write(f"Error loading Excel file: {e}")
+            return
 
-        for name in models:
-            print(f'Loading data for {name}')
-            # ตรวจสอบว่า sheet ใน Excel มีข้อมูลโมเดลนั้นหรือไม่
-            if name not in wb.sheetnames:
-                print(f"Sheet {name} not found in {xlsx}")
+        # Specify the models to load data for
+        target_models = ['Member', 'Product']
+        app_config = apps.get_app_config('myapp')
+
+        for model_name in target_models:
+            if model_name not in workbook.sheetnames:
+                self.stdout.write(f"Sheet '{model_name}' not found in the Excel file. Skipping.")
                 continue
 
-            # ดึงข้อมูลโมเดล
-            m = app.get_model(name)
-            fields = [f.name for f in m._meta.fields]
-            keys = []
+            model = app_config.get_model(model_name)
+            sheet = workbook[model_name]
+            headers = None
 
-            # เริ่มการอ่านข้อมูลในแต่ละแถวของ Sheet
-            sheet = wb[name]
             for row_index, row in enumerate(sheet.iter_rows(values_only=True), start=1):
-                print(f"Row {row_index}: {row}")
+                if row_index == 1:
+                    # Set headers from the first row
+                    headers = [col.lower() for col in row]
+                    self.stdout.write(f"Headers for '{model_name}': {headers}")
+                    continue
 
-                # กำหนดหัวคอลัมน์ในแถวแรก
-                if row_index == 1:  # กำหนดหัวคอลัมน์จากแถวแรก
-                    keys = [key.lower() for key in row]  # ปรับชื่อคีย์ให้เป็นตัวพิมพ์เล็กทั้งหมด
-                    print(f"Headers: {keys}")
-                else:
-                    # สร้าง dictionary สำหรับเก็บข้อมูลในแต่ละแถว
-                    data = dict((keys[i], row[i]) for i in range(len(keys)) if keys[i] in fields)
-                    if options['skip_id']:
-                        data.pop('id', 0)
+                # Map row data to model fields
+                data = {headers[i]: row[i] for i in range(len(headers)) if headers[i] in [f.name for f in model._meta.fields]}
+                if options['skip_id']:
+                    data.pop('id', None)
 
-                    # ลบช่องว่างหรืออักขระพิเศษในฟิลด์ข้อมูล
-                    data = {k: (v.strip() if isinstance(v, str) else v) for k, v in data.items()}
+                # Clean and prepare data for insertion
+                data = {k: (v.strip() if isinstance(v, str) else v) for k, v in data.items()}
 
-                    # ตรวจสอบข้อมูลก่อนดำเนินการใดๆ
-                    print(f"Parsed Data (Before Processing): {data}")
-
-                    # จัดการฟิลด์ต่างๆ ตามประเภทของข้อมูล
-                    for k, value in data.items():
-                        field = m._meta.get_field(k)
-                        try:
-                            if type(field) in [OneToOneField, ForeignKey] and value is not None:
-                                # กรณีฟิลด์ความสัมพันธ์ (relationship)
-                                data[k] = field.related_model.objects.get(id=int(value))
-                            elif type(field) == DateTimeField and value is not None:
-                                # กรณีฟิลด์วันเวลา
-                                data[k] = value.isoformat()
-                            elif type(field) == DateField and value is not None:
-                                # กรณีฟิลด์วันที่
-                                data[k] = f'{value.year:04}-{value.month:02}-{value.day:02}'
-                            elif type(field) == FileField and value is not None:
-                                # กรณีฟิลด์รูปภาพ (FileField หรือ ImageField)
-                                img_path = os.path.join('media', 'img', value)
-                                if os.path.exists(img_path):
-                                    data[k] = f"img/{value}"  # ตั้งค่า path ของรูปภาพตามที่ระบบ Django กำหนด
-                                else:
-                                    print(f"Image not found: {img_path}")
-                                    data[k] = None  # หรือสามารถตั้งค่า default ได้
-                            elif type(field) == DecimalField and value is not None:
-                                # กรณีฟิลด์ราคาที่เป็นตัวเลขทศนิยม
-                                try:
-                                    data[k] = float(value)
-                                except ValueError:
-                                    print(f"Error converting field {k} to float: {value}")
-                                    data[k] = None
-                        except Exception as e:
-                            print(f"Error in field {k}: {str(e)}")
-                            del data[k]
-
-                    # ตรวจสอบข้อมูลหลังจัดการฟิลด์
-                    print(f"Parsed Data (After Processing): {data}")
-
-                    # ใช้ update_or_create แทน get_or_create พร้อมกำหนดเงื่อนไขที่แน่นอน
+                # Handle special field types
+                for field_name, value in data.items():
+                    field = model._meta.get_field(field_name)
                     try:
-                        # แก้ปัญหาการใช้เงื่อนไขที่ไม่เหมาะสมใน update_or_create
-                        if 'product_name' in data and data['product_name']:  # แก้จาก product_Name เป็น product_name
-                            condition = {'product_name': data['product_name']}
-                        elif 'username' in data and data['username']:
-                            condition = {'username': data['username']}
-                        else:
-                            print(f"Skipping row due to missing identifier field or empty value: {data}")
-                            continue
-
-                        print(f"Data to insert/update: {data}")
-                        obj, created = m.objects.update_or_create(defaults=data, **condition)
-                        if created:
-                            print(f'Created {obj}')
-                        else:
-                            print(f'Updated {obj}')
-                    except MultipleObjectsReturned:
-                        print(f"Multiple entries found for {name} with {data}. Please check your data.")
+                        if isinstance(field, (OneToOneField, ForeignKey)) and value:
+                            data[field_name] = field.related_model.objects.get(id=int(value))
+                        elif isinstance(field, (DateTimeField, DateField)) and value:
+                            data[field_name] = value.isoformat()
+                        elif isinstance(field, FileField) and value:
+                            img_path = os.path.join('media', 'img', value)
+                            data[field_name] = f"img/{value}" if os.path.exists(img_path) else None
+                        elif isinstance(field, DecimalField) and value:
+                            data[field_name] = float(value)
                     except Exception as e:
-                        print(f"Error in creating/updating {name}: {e}")
+                        self.stderr.write(f"Error processing field '{field_name}' in '{model_name}': {e}")
+                        data[field_name] = None
 
-        # แสดงสถานะเมื่อสิ้นสุดการดำเนินการ
-        print("Data import completed.")
+                # Determine the unique field for this model
+                unique_field = None
+                if model_name == "Member":
+                    unique_field = 'username'
+                elif model_name == "Product":
+                    unique_field = 'product_name'
+
+                if not unique_field or unique_field not in data or not data[unique_field]:
+                    self.stderr.write(
+                        f"Skipping row {row_index} in '{model_name}' due to missing or empty unique identifier.")
+                    self.stderr.write(f"Raw data for row {row_index}: {data}")
+                    continue
+
+                # Create or update the model instance
+                condition = {unique_field: data[unique_field]}
+                try:
+                    obj, created = model.objects.update_or_create(defaults=data, **condition)
+                    action = 'Created' if created else 'Updated'
+                    self.stdout.write(f"{action} {model_name}: {obj}")
+                except Exception as e:
+                    self.stderr.write(f"Error saving {model_name} (Row {row_index}): {e}")
+
+        self.stdout.write("Data import completed.")

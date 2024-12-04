@@ -1,3 +1,4 @@
+{#Addmenu.html#}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -31,11 +32,16 @@
             </button>
         </div>
 
-        <!-- Product Cards -->
+                <!-- Product Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ml-48">
             {% for product in products %}
             <div class="bg-white shadow-lg rounded-lg overflow-hidden transform transition-all hover:scale-105">
+                {% if product.img_product %}
                 <img src="{{ product.img_product.url }}" alt="{{ product.product_name }}" class="w-full h-48 object-cover">
+                {% else %}
+                <!-- Placeholder image if no product image is uploaded -->
+                <img src="{% static 'default-placeholder.jpg' %}" alt="No image" class="w-full h-48 object-cover">
+                {% endif %}
                 <div class="p-4">
                     <h3 class="text-lg font-semibold text-gray-800">{{ product.product_name }}</h3>
                     <p class="text-sm text-gray-600">{{ product.description }}</p>
@@ -97,7 +103,11 @@
                 </div>
                 <div class="mb-4">
                     <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
-                    <input type="text" name="category" id="category" class="mt-1 p-2 w-full border border-gray-300 rounded-md" required>
+                    <select name="category" id="category" class="w-full border border-gray-300 rounded px-3 py-2">
+                        {% for category in form.fields.category.choices %}
+                            <option value="{{ category.0 }}">{{ category.1 }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="mb-4">
                     <label for="img_product" class="block text-sm font-medium text-gray-700">Image</label>
@@ -115,10 +125,29 @@
             </form>
         </div>
     </div>
-
+        <!-- Add Category Modal -->
+        <div id="addCategoryModal" class="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50 hidden">
+            <div class="bg-white rounded-lg shadow-lg w-1/2 p-6">
+                <h2 class="text-2xl font-semibold mb-4">Add New Category</h2>
+                <form id="addCategoryForm" method="POST">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label for="category_name" class="block text-sm font-medium text-gray-700">Category Name</label>
+                        <input type="text" name="category_name" id="category_name" class="mt-1 p-2 w-full border border-gray-300 rounded-md" required>
+                    </div>
+        
+                    <div class="flex justify-end gap-4 mt-4">
+                        <button type="button" id="closeAddCategoryModal" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400">
+                            Cancel
+                        </button>
+                        <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition duration-300">
+                            Add Category
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     <script>
-        // Get modal and buttons for Add Product
-        const addProductModal = document.getElementById('addProductModal');
         const openAddProductModalBtn = document.getElementById('openAddProductModal');
         const closeAddProductModalBtn = document.getElementById('closeAddProductModal');
 
@@ -155,7 +184,7 @@
                 if (data.status === 'success') {
                     // Close modal and reload the page (or show success message)
                     addProductModal.classList.add('hidden');
-                    location.reload(); // reload to see the new product
+                    location.reload(); // Reload the page to see the new product
                 } else {
                     // Handle error (show error message)
                     alert('Error adding product: ' + data.message);
@@ -165,6 +194,57 @@
                 console.error('Error:', error);
             });
         });
+        
+        // Get modal and buttons for Add Category
+        const addCategoryModal = document.getElementById('addCategoryModal');
+        const openAddCategoryModalBtn = document.getElementById('openAddCategoryModal');
+        const closeAddCategoryModalBtn = document.getElementById('closeAddCategoryModal');
+        
+        // Show modal when 'Add Category' button is clicked
+        openAddCategoryModalBtn.addEventListener('click', () => {
+            addCategoryModal.classList.remove('hidden'); // Show the modal
+        });
+        
+        // Hide modal when 'Cancel' button is clicked
+        closeAddCategoryModalBtn.addEventListener('click', () => {
+            addCategoryModal.classList.add('hidden'); // Hide the modal
+        });
+        
+        // Optionally, you can also close the modal by clicking outside of it
+        window.addEventListener('click', (e) => {
+            if (e.target === addCategoryModal) {
+                addCategoryModal.classList.add('hidden'); // Hide modal when clicking outside
+            }
+        });
+        
+        // AJAX for submitting Add Category form
+        const addCategoryForm = document.getElementById('addCategoryForm');
+        addCategoryForm.addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent the default form submission
+        
+            const formData = new FormData(addCategoryForm); // Create a FormData object from the form
+        
+            fetch("{% url 'add_category' %}", {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Close modal and reload the page (or show success message)
+                    addCategoryModal.classList.add('hidden');
+                    alert('Category added successfully!');
+                    location.reload(); // Reload the page to reflect the changes
+                } else {
+                    // Handle error (show error message)
+                    alert('Error adding category: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+
     </script>
 </body>
 </html>

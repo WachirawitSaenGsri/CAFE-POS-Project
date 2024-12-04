@@ -14,7 +14,7 @@ urlpatterns = [
     path('inventory/', views.inventory, name='inventory'),
     path('history/', views.History_Order, name='History_Order'),
     path('member/', views.Member1, name='member'),
-    path('Addmenu/', views.Addmenu, name='addmenu'),
+    path('addmenu/', views.Addmenu, name='addmenu'),
     #path('add_to_cart/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
     path('add_to_order/', views.add_to_order, name='add_to_order'),  # เพิ่มเส้นทางสำหรับเพิ่มสินค้าใน order
     path('update_order_detail/', views.update_order_detail, name='update_order_detail'),
@@ -25,7 +25,7 @@ urlpatterns = [
     path('add_product/', views.add_product, name='add_product'),
     path('edit_product/<int:product_id>/', views.edit_product, name='edit_product'),
     path('delete_product/<int:product_id>/', views.delete_product, name='delete_product'),
-    path('delete_product/add_category/', views.add_category, name='delete_product'),
+    path('add_category/', views.add_category, name='add_category'),
 
 
 ]
