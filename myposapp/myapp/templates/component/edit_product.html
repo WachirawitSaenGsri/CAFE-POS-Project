@@ -17,32 +17,62 @@
 <body class="bg-gray-50">
     <div class="container mx-auto p-8 max-w-4xl bg-white rounded-xl shadow-lg">
         <h2 class="text-3xl font-semibold text-gray-800 mb-8 text-center">Edit Product</h2>
-        
+
         <form action="{% url 'edit_product' product.id %}" method="POST" enctype="multipart/form-data" class="space-y-6">
             {% csrf_token %}
-            
+
+            <!-- Product Name -->
             <div>
                 <label for="product_name" class="block text-sm font-medium text-gray-700">Product Name</label>
                 <input type="text" id="product_name" name="product_name" value="{{ product.product_name }}"
                     class="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent" required>
             </div>
 
+            <!-- Description -->
             <div>
                 <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
                 <textarea id="description" name="description" class="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                     rows="4">{{ product.description }}</textarea>
             </div>
 
+            <!-- Price -->
             <div>
                 <label for="price" class="block text-sm font-medium text-gray-700">Price (฿)</label>
                 <input type="number" id="price" name="price" value="{{ product.price }}" class="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent" step="0.01" required>
             </div>
 
+            <!-- Category -->
             <div>
                 <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
-                <input type="text" id="category" name="category" value="{{ product.category }}" class="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent" required>
+                <select name="category" id="category" class="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                    {% for category in form.fields.category.queryset %}
+                        <option value="{{ category.id }}" {% if category.id == product.category.id %} selected {% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
 
+            <!-- Options -->
+            <div id="options-section">
+                <label for="options" class="block text-sm font-medium text-gray-700">Product Options</label>
+                <div id="options-list">
+                    {% for option in options %}
+                        <div class="flex gap-4 mt-2 option-container">
+                            <input type="text" name="option_name[]" value="{{ option.name }}" placeholder="Option Name" class="border rounded p-2 flex-1 option-name" required>
+                            <input type="number" name="option_price[]" value="{{ option.price }}" placeholder="Price" class="border rounded p-2 option-price" step="0.01" min="0" required>
+                            <button type="button" class="remove-option-btn text-red-500">Remove</button>
+                        </div>
+                    {% endfor %}
+                </div>
+                <button type="button" id="add-option-btn" class="bg-blue-500 text-white px-4 py-2 rounded mt-4">Add Option</button>
+            </div>
+
+            <!-- Stock -->
+            <div>
+                <label for="stock" class="block text-sm font-medium text-gray-700">Stock Quantity</label>
+                <input type="number" name="stock" id="stock" value="{{ product.stock }}" class="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent" required>
+            </div>
+
+            <!-- Product Image -->
             <div>
                 <label for="img_product" class="block text-sm font-medium text-gray-700">Product Image</label>
                 <input type="file" id="img_product" name="img_product" class="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
@@ -59,6 +89,36 @@
             </div>
         </form>
     </div>
+
+    <script>
+        // Dynamically add options
+        document.getElementById('add-option-btn').addEventListener('click', () => {
+            const optionsList = document.getElementById('options-list');
+            const optionField = document.createElement('div');
+            optionField.className = 'flex gap-4 mt-2 option-container';
+        
+            optionField.innerHTML = `
+                <input type="text" name="option_name[]" placeholder="Option Name" class="border rounded p-2 flex-1 option-name" required>
+                <input type="number" name="option_price[]" placeholder="Price" class="border rounded p-2 option-price" step="0.01" min="0" required>
+                <button type="button" class="remove-option-btn text-red-500 hover:underline">Remove</button>
+            `;
+        
+            optionsList.appendChild(optionField);
+        
+            // Add event listener for the "Remove" button
+            optionField.querySelector('.remove-option-btn').addEventListener('click', () => {
+                optionsList.removeChild(optionField);
+            });
+        });
+
+        // Add event listeners to remove existing options
+        document.querySelectorAll('.remove-option-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const optionContainer = btn.closest('.option-container');
+                optionContainer.remove();
+            });
+        });
+    </script>
 </body>
 
 </html>

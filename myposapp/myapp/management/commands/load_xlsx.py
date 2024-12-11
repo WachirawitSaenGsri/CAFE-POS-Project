@@ -30,7 +30,7 @@ class Command(BaseCommand):
             return
 
         # Specify the models to load data for
-        target_models = ['Member', 'Product']
+        target_models = ['Category', 'Product', 'Option']
         app_config = apps.get_app_config('myapp')
 
         for model_name in target_models:
@@ -45,7 +45,8 @@ class Command(BaseCommand):
             for row_index, row in enumerate(sheet.iter_rows(values_only=True), start=1):
                 if row_index == 1:
                     # Set headers from the first row
-                    headers = [col.lower() for col in row]
+                    headers = [col.lower() if col else None for col in row]
+                    headers = [col for col in headers if col]  # Remove None values
                     self.stdout.write(f"Headers for '{model_name}': {headers}")
                     continue
 
@@ -55,36 +56,42 @@ class Command(BaseCommand):
                     data.pop('id', None)
 
                 # Clean and prepare data for insertion
-                data = {k: (v.strip() if isinstance(v, str) else v) for k, v in data.items()}
+                data = {k: (v.strip() if isinstance(v, str) else v) for k, v in data.items() if v is not None}
 
                 # Handle special field types
                 for field_name, value in data.items():
                     field = model._meta.get_field(field_name)
                     try:
-                        if isinstance(field, (OneToOneField, ForeignKey)) and value:
-                            data[field_name] = field.related_model.objects.get(id=int(value))
-                        elif isinstance(field, (DateTimeField, DateField)) and value:
-                            data[field_name] = value.isoformat()
-                        elif isinstance(field, FileField) and value:
-                            img_path = os.path.join('media', 'img', value)
-                            data[field_name] = f"img/{value}" if os.path.exists(img_path) else None
+                        if isinstance(field, ForeignKey) and value:
+                            related_model = field.related_model
+                            if field_name == 'category':  # For Product model, category is a ForeignKey
+                                related_obj = related_model.objects.get(name=value)  # Assuming 'name' is unique
+                            elif field_name == 'product':  # For Option model, product is a ForeignKey
+                                related_obj = related_model.objects.get(product_name=value)  # Assuming 'product_name' is unique
+                            else:
+                                related_obj = related_model.objects.get(**{field_name: value})
+                            data[field_name] = related_obj
                         elif isinstance(field, DecimalField) and value:
                             data[field_name] = float(value)
+                    except related_model.DoesNotExist:
+                        self.stderr.write(
+                            f"Error: {field_name} '{value}' does not exist in {related_model.__name__}. Skipping row.")
+                        data[field_name] = None
                     except Exception as e:
                         self.stderr.write(f"Error processing field '{field_name}' in '{model_name}': {e}")
                         data[field_name] = None
 
                 # Determine the unique field for this model
                 unique_field = None
-                if model_name == "Member":
-                    unique_field = 'username'
+                if model_name == "Category":
+                    unique_field = 'name'
                 elif model_name == "Product":
                     unique_field = 'product_name'
+                elif model_name == "Option":
+                    unique_field = 'name'
 
                 if not unique_field or unique_field not in data or not data[unique_field]:
-                    self.stderr.write(
-                        f"Skipping row {row_index} in '{model_name}' due to missing or empty unique identifier.")
-                    self.stderr.write(f"Raw data for row {row_index}: {data}")
+                    self.stderr.write(f"Skipping row {row_index} in '{model_name}' due to missing or empty unique identifier.")
                     continue
 
                 # Create or update the model instance

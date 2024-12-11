@@ -6,5 +6,8 @@ admin.site.register(Product)
 admin.site.register(Member)
 admin.site.register(Order)
 admin.site.register(OrderDetail)
+admin.site.register(Option)
+admin.site.register(Payment)
+admin.site.register(Category)
 
 

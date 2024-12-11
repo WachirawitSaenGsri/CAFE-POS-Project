@@ -3,11 +3,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth import login, logout , authenticate
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
-from myapp.models import Member,Product,Order, OrderDetail
 from django.shortcuts import get_object_or_404
-from django.http import HttpResponseRedirect
-from .models import Product
 from django.http import JsonResponse
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
@@ -17,6 +13,11 @@ from django.views.decorators.csrf import csrf_protect
 from django.core.paginator import Paginator
 from .forms import *
 from django.db import transaction
+from myapp.models import Product, Order, OrderDetail, Option, Category, Payment
+
+
+
+
 def user_login(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -116,9 +117,53 @@ def Menu(request):
 def Order1(request):
     return render(request, 'Order.html')
 
+
 @login_required
-def PayMent(request):
-    return render(request, 'Payment.html')
+def PayMent(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+
+    # Initialize total order price
+    total_order_price = 0
+    order_details = []
+
+    # Calculate total item price and total order price
+    for detail in order.order_details.all():
+        total_item_price = detail.quantity * detail.price
+        order_details.append({
+            'product_name': detail.product.product_name,
+            'quantity': detail.quantity,
+            'price': detail.price,
+            'total_item_price': total_item_price,
+            'options': detail.options,  # Include options in the order details
+        })
+        total_order_price += total_item_price
+
+    if request.method == 'POST':
+        form = PaymentForm(request.POST)
+        if form.is_valid():
+            payment_method = form.cleaned_data['payment_method']
+
+            # Simulate payment logic here
+            payment = Payment.objects.create(
+                order=order,
+                amount=order.total_price,
+                payment_method=payment_method,
+                payment_status="Success"  # Change to dynamic status if integrating payment gateway
+            )
+
+            messages.success(request, "Payment completed successfully!")
+            return redirect('History_Order')  # Redirect to order history or confirmation page
+
+    else:
+        form = PaymentForm()
+
+    # Pass the calculated values to the template
+    return render(request, 'Payment.html', {
+        'order': order,
+        'form': form,
+        'total_order_price': total_order_price,  # Pass the total order price
+        'order_details': order_details,  # Pass the detailed order data
+    })
 
 @login_required
 def Marketing(request):
@@ -136,26 +181,38 @@ def History_Order(request):
 def Member1(request):
     return render(request, 'Member1.html')
 
+
 @login_required
 def Addmenu(request):
-    products = Product.objects.all()  # ดึงข้อมูลสินค้าทั้งหมดจากฐานข้อมูล
-    page_number = request.GET.get('page', 1)
+    search_query = request.GET.get('search', '')  # รับคำค้นหาจากฟอร์ม
 
+    # ถ้าคำค้นหามีการระบุ
+    if search_query:
+        products = Product.objects.filter(
+            Q(product_name__icontains=search_query) |
+            Q(category__name__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    else:
+        # ถ้าไม่มีคำค้นหาก็ให้ดึงสินค้าทั้งหมด
+        products = Product.objects.all()
+
+    # การแบ่งหน้า
+    page_number = request.GET.get('page', 1)  # รับค่าหน้าจาก query string
     paginator = Paginator(products, 12)  # แบ่งสินค้าเป็นหน้าละ 12 รายการ
     page_obj = paginator.get_page(page_number)
 
     form = ProductForm()  # ฟอร์มสำหรับการเพิ่มสินค้า
 
-    return render(request, 'Addmenu.html', {'products': page_obj, 'form': form})
+    return render(request, 'Addmenu.html', {'products': page_obj, 'form': form, 'search_query': search_query})
 
-@login_required
 def home(request):
     query = request.GET.get('q', '')  # รับค่าคำค้นหา
     category = request.GET.get('category', 'all')  # รับหมวดหมู่
     page_number = request.GET.get('page', 1)  # รับหมายเลขหน้า
 
     # ดึงหมวดหมู่ทั้งหมดที่มีอยู่ในฐานข้อมูล
-    categories = Product.objects.values('category').distinct()  # ดึงหมวดหมู่ทั้งหมดจากฐานข้อมูล
+    categories = Category.objects.all()  # ดึงหมวดหมู่ทั้งหมดจากฐานข้อมูล
 
     # ดึงสินค้าทั้งหมด
     products = Product.objects.all()
@@ -166,14 +223,14 @@ def home(request):
 
     # กรองสินค้าตามหมวดหมู่
     if category != 'all':
-        products = products.filter(category__iexact=category)
+        products = products.filter(category__name=category)
 
     # แบ่งสินค้าเป็นหน้าละ 10 รายการ
     paginator = Paginator(products, 10)
     page_obj = paginator.get_page(page_number)
 
     # ดึงคำสั่งซื้อที่ยังไม่สมบูรณ์ล่าสุด
-    order = Order.objects.filter(customer_name='GOT').last()
+    order = Order.objects.filter(customer_name='unknown').last()
 
     total_price = 0
     total_quantity = 0
@@ -184,6 +241,11 @@ def home(request):
     # ฟอร์มสำหรับกรอกข้อมูลลูกค้า
     form = CustomerInfoForm()
 
+    # ส่งข้อมูล options_list ในแต่ละ product ไปยัง template
+    for product in page_obj:
+        # ใช้ .all() เพื่อดึงข้อมูล options ที่เชื่อมโยงกับ product
+        product.options_list = [option.name for option in product.options.all()] if product.options.exists() else []
+
     return render(request, 'home.html', {
         'page_obj': page_obj,
         'query': query,
@@ -192,57 +254,76 @@ def home(request):
         'order': order,
         'total_price': total_price,
         'total_quantity': total_quantity,
-        'form': form  # ส่งฟอร์มข้อมูลลูกค้า
+        'form': form,  # ส่งฟอร์มข้อมูลลูกค้า
     })
 
 # Add product to order
 @csrf_exempt
+@login_required
 def add_to_order(request):
     if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            product_id = data.get('product_id')
-            options = data.get('options', '')  # รับค่า options จาก frontend เช่น "SUGAR,FOAM,HOT"
-            quantity = data.get('quantity', 1)
+        data = json.loads(request.body)
+        product_id = data.get('product_id')
+        options = data.get('options', [])  # Array of selected options
+        quantity = data.get('quantity', 1)
 
-            # ตรวจสอบว่ามีสินค้าที่ส่งมาจาก request หรือไม่
+        try:
+            # Get the product
             product = Product.objects.get(id=product_id)
 
-            # ตรวจสอบว่ามี Order ที่ยังไม่ได้ปิดหรือไม่
+            # Retrieve or create an order for the logged-in user
             order, created = Order.objects.get_or_create(
-                customer_name='GOT',  # ใช้ข้อมูลชั่วคราวก่อน
-                customer_phone='090-000-0000',
+                customer_name='unknown',  # Static name or use request.user.username if needed
+                customer_phone='0999999999',  # Static phone number or use a profile field if needed
                 defaults={'total_price': 0}
             )
 
-            # เพิ่มสินค้าใน OrderDetail หรืออัปเดตรายการเดิม
-            order_detail, created = OrderDetail.objects.get_or_create(
-                order=order,
-                product=product,
-                defaults={'quantity': quantity, 'price': product.price * quantity, 'options': options}
-            )
+            # Fetch the selected options from the database
+            selected_options = Option.objects.filter(name__in=options, product=product)
+            total_option_price = sum([option.price for option in selected_options])
 
-            if not created:  # ถ้ามีอยู่แล้ว ให้ปรับจำนวนและ options
+            # Calculate the total price with options
+            total_price = (product.price + total_option_price) * quantity
+
+            # Check if the product with selected options already exists in the order
+            order_detail = OrderDetail.objects.filter(
+                order=order,
+                product=product
+            ).filter(options__in=selected_options).distinct()
+
+            if order_detail.exists():
+                # If product already exists in the order with the same options, update it
+                order_detail = order_detail.first()  # Get the first matching order detail
                 order_detail.quantity += quantity
-                existing_options = set(order_detail.options.split(',')) if order_detail.options else set()
-                new_options = set(options.split(','))
-                combined_options = ', '.join(existing_options.union(new_options))
-                order_detail.options = combined_options
-                order_detail.price = order_detail.quantity * product.price
+                order_detail.price = order_detail.quantity * (product.price + total_option_price)
                 order_detail.save()
 
-            # คำนวณราคาใหม่ของคำสั่งซื้อ
-            order.total_price = sum(item.price for item in order.order_details.all())
+                # Set the options for this order item
+                order_detail.options.set(selected_options)
+                order_detail.save()
+            else:
+                # Create a new OrderDetail if no matching item is found
+                order_detail = OrderDetail.objects.create(
+                    order=order,
+                    product=product,
+                    quantity=quantity,
+                    price=total_price
+                )
+                order_detail.options.set(selected_options)  # Set the options for this order item
+                order_detail.save()
+
+            # Update the total price of the order
+            order.total_price = sum([item.price for item in order.order_details.all()])
             order.save()
 
-            return JsonResponse({'status': 'success', 'message': 'Added to order successfully'})
+            return JsonResponse({'status': 'success', 'message': 'Product added to order successfully', 'total_price': order.total_price})
+
         except Product.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Product not found'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
 
     return JsonResponse({'status': 'invalid method'})
-
 @login_required
 @csrf_exempt
 def update_order_detail(request):
@@ -294,69 +375,110 @@ def delete_order_detail(request):
 @transaction.atomic
 def PayNow(request):
     if request.method == 'POST':
-        # Get the customer info from the form
         form = CustomerInfoForm(request.POST)
+
+        # Print form data for debugging
+        print("Form Data:", request.POST)
 
         if form.is_valid():
             customer_name = form.cleaned_data['customer_name']
             customer_phone = form.cleaned_data['customer_phone']
 
             # Get the latest order or create a new one
-            order = Order.objects.filter(
-                customer_name='GOT').last()  # Temporary identifier (replace 'GOT' with actual session or user data)
-
+            order = Order.objects.filter(customer_name='unknown').last()
             if order:
                 # Update the order with customer info
                 order.customer_name = customer_name
                 order.customer_phone = customer_phone
                 order.save()
 
-                # Display a success message
-                messages.success(request, 'ข้อมูลลูกค้าถูกบันทึกเรียบร้อยแล้ว!')
+                # Get the order details and total price
+                order_details = OrderDetail.objects.filter(order=order)
+                total_order_price = sum(detail.price for detail in order_details)
+
+                # Pass order details and total price to the payment page
+                return render(request, 'payment.html', {
+                    'order': order,
+                    'order_details': order_details,
+                    'total_order_price': total_order_price,
+                    'form': PaymentForm()  # Only render the payment form if the customer info is valid
+                })
             else:
-                messages.error(request, 'ไม่พบคำสั่งซื้อในระบบ! กรุณาลองใหม่.')
-
-            # Redirect back to the home page (or wherever you want)
-            return redirect('home')
+                messages.error(request, 'No active order found. Please try again.')
         else:
-            # If form is not valid, show errors
-            messages.error(request, 'กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง.')
+            # Log the form errors to understand what went wrong
+            print("Form Errors:", form.errors)
+            messages.error(request, 'Invalid form data. Please check and try again.')
 
-    # If the method is not POST, just render the page (for any errors or initial load)
     return redirect('home')
+
 
 @login_required
 def add_product(request):
     if request.method == 'POST':
-        form = ProductForm(request.POST, request.FILES)  # รับข้อมูลจากฟอร์มและไฟล์
+        form = ProductForm(request.POST, request.FILES)  # Get form data (including options)
         if form.is_valid():
-            form.save()  # บันทึกข้อมูลสินค้าใหม่ลงฐานข้อมูล
+            product = form.save()
+            option_names = request.POST.getlist('option_name[]')
+            option_prices = request.POST.getlist('option_price[]')
+            for name, price in zip(option_names, option_prices):
+                Option.objects.create(product=product, name=name, price=price)
+
             messages.success(request, 'Product added successfully!')
-            return redirect('addmenu')  # เมื่อเพิ่มสินค้าเสร็จแล้ว ให้กลับไปยังหน้า Addmenu
+            return redirect('add_product')  # Redirect after successful form submission
+        else:
+            print("Form is not valid", form.errors)
+            messages.error(request, 'Form is not valid.')
     else:
         form = ProductForm()
 
     return render(request, 'Addmenu.html', {'form': form})
-# View สำหรับการแก้ไขสินค้า
 @login_required
 def edit_product(request, product_id):
     product = get_object_or_404(Product, id=product_id)
 
     if request.method == 'POST':
-        product.product_name = request.POST['product_name']
-        product.description = request.POST['description']
-        product.price = request.POST['price']
-        product.category = request.POST['category']
+        product_form = ProductForm(request.POST, request.FILES, instance=product)
 
-        img_product = request.FILES.get('img_product')
-        if img_product:
-            product.img_product = img_product
+        if product_form.is_valid():
+            # Save the product first
+            product = product_form.save()
 
-        product.save()
-        messages.success(request, 'Product updated successfully!')
-        return redirect('addmenu')
+            # Update options (clear previous options)
+            product.options.all().delete()
 
-    return render(request, 'component/edit_product.html', {'product': product})
+            # Save new options
+            option_names = request.POST.getlist('option_name[]')
+            option_prices = request.POST.getlist('option_price[]')
+
+            for name, price in zip(option_names, option_prices):
+                Option.objects.create(
+                    product=product,
+                    name=name,
+                    price=price
+                )
+
+            messages.success(request, 'Product updated successfully!')
+            return redirect('addmenu')  # Redirect after successful form submission
+    else:
+        product_form = ProductForm(instance=product)
+
+    # Fetch existing options for the product
+    options = product.options.values('name', 'price')  # Fetch existing options for the product
+    options = [
+        {
+            'name': option['name'],
+            'price': float(option['price'])  # Convert Decimal to float
+        }
+        for option in options
+    ]
+
+    # Pass the options as JSON to the template
+    return render(request, 'component/edit_product.html', {
+        'form': product_form,
+        'product': product,
+        'options': options,  # Send options as JSON
+    })
 # View สำหรับการลบสินค้า
 @login_required
 def delete_product(request, product_id):
@@ -370,17 +492,21 @@ def delete_product(request, product_id):
 @login_required
 def add_category(request):
     if request.method == 'POST':
-        category_name = request.POST.get('category_name')
+        try:
+            data = json.loads(request.body)
+            category_name = data.get('category_name')
 
-        if category_name:
-            # เช็คว่าหมวดหมู่นี้มีอยู่แล้วหรือไม่
-            if not Product.objects.filter(category=category_name).exists():
-                # เพิ่มหมวดหมู่ใหม่
-                # สามารถใช้ Product หรือสร้าง Model แยก Category ตามต้องการ
-                Product.objects.create(category=category_name)
-                return JsonResponse({'status': 'success', 'message': 'Category added successfully'})
-            else:
+            if not category_name:
+                return JsonResponse({'status': 'error', 'message': 'Category name is required'})
+
+            # Check if category already exists
+            if Category.objects.filter(name=category_name).exists():
                 return JsonResponse({'status': 'error', 'message': 'Category already exists'})
-        else:
-            return JsonResponse({'status': 'error', 'message': 'Category name is required'})
+
+            # Create new category
+            category = Category.objects.create(name=category_name)
+            return JsonResponse({'status': 'success', 'message': 'Category added successfully', 'category_name': category.name})
+
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'invalid method'})

@@ -1,10 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% load static tailwind_tags %}
+    {% tailwind_css %}
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment for Order #{{ order.id }}</title>
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+        }
+    </style>
 </head>
-<body>
-<h3>ยังไม่มีอะไร</h3>
+<body class="bg-gray-100">
+    {% include 'component/sidebar.html' %}
+    {% include 'component/navbar.html' %}
+    
+    <div class="container mx-auto p-6">
+        <h1 class="text-2xl font-bold mb-4 ml-20">Payment for Order #{{ order.id }}</h1>
+        <p class="text-lg mb-4 ml-20">Total Amount: <strong>{{ total_order_price }} ฿</strong></p>
+
+        <div class="bg-gray-100 p-4 rounded-md mb-6 ml-20">
+            <h2 class="text-xl font-semibold mb-3">Order Details</h2>
+            <table class="table-auto w-full text-left border-collapse">
+                <thead>
+                    <tr>
+                        <th class="border-b py-2">Product</th>
+                        <th class="border-b py-2">Options</th> <!-- Display options -->
+                        <th class="border-b py-2">Quantity</th>
+                        <th class="border-b py-2">Unit Price</th>
+                        <th class="border-b py-2">Total Item Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detail in order_details %}
+                    <tr>
+                        <td class="py-2">{{ detail.product.product_name }}</td>
+                        <td class="py-2">
+                            {% if detail.options.all %}
+                                {% for option in detail.options.all %}
+                                    {{ option.name }} (+{{ option.price }} ฿)<br>
+                                {% endfor %}
+                            {% else %}
+                                No options selected
+                            {% endif %}
+                        </td>
+                        <td class="py-2">{{ detail.quantity }}</td>
+                        <td class="py-2">{{ detail.price }} ฿</td>
+                        <td class="py-2">{{ detail.price|add:0 }} ฿</td> <!-- Display the total item price -->
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="mt-4 text-left font-semibold">
+                <p>Total Order Price: <strong>{{ total_order_price }} ฿</strong></p>
+            </div>
+        </div>
+
+        <form method="POST" class="ml-20">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md">
+                Confirm Payment
+            </button>
+        </form>
+    </div>
 </body>
-</html>
+</html> 

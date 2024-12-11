@@ -1,4 +1,3 @@
-<!-- home.html -->
 {% load static tailwind_tags %}
 <!DOCTYPE html>
 <html lang="en">
@@ -21,24 +20,21 @@
 <!-- Categories -->
 <div class="container mx-auto my-6">
     <div class="flex justify-start gap-4 ml-96 mr-48">
-        <!-- Loop through categories and display them -->
         <a href="{% url 'home' %}?category=all"
            class="px-4 py-2 bg-white rounded-lg shadow text-gray-700 hover:bg-gray-100 {% if category == 'all' %}bg-yellow-500 text-white{% endif %}">
            All Menu
         </a>
         {% for category_item in categories %}
-        <a href="{% url 'home' %}?category={{ category_item.category }}"
-           class="px-4 py-2 bg-white rounded-lg shadow text-gray-700 hover:bg-gray-100 {% if category == category_item.category %}bg-yellow-500 text-white{% endif %}">
-           {{ category_item.category|title }}
+        <a href="{% url 'home' %}?category={{ category_item.name }}"
+           class="px-4 py-2 bg-white rounded-lg shadow text-gray-700 hover:bg-gray-100 {% if category == category_item.name %}bg-yellow-500 text-white{% endif %}">
+           {{ category_item.name|title }}
         </a>
         {% endfor %}
     </div>
 </div>
 
-<!-- Product List and Cart Information -->
 <div class="container mx-auto my-4">
     <div class="flex justify-between items-start gap-0 ml-40">
-        <!-- Product List -->
         <div class="container mx-auto">
             <div class="flex flex-col items-start gap-6">
                 {% for product in page_obj %}
@@ -54,9 +50,24 @@
                         <h3 class="text-lg font-semibold text-gray-800">{{ product.product_name }}</h3>
                         <p class="text-sm text-gray-600">{{ product.description }}</p>
                         <p class="text-yellow-500 font-bold mt-2">{{ product.price }} ฿</p>
+
+                        {% if product.is_low_stock %}
+                        <p class="text-red-500 text-sm font-semibold mt-2">สินค้าใกล้หมดแล้ว</p>
+                        {% endif %}
+
+                        <div class="mt-2">
+                            <label class="block text-sm text-gray-700"></label>
+                            <div class="flex gap-4 mt-2" id="options-{{ product.id }}">
+                                {% for option in product.options.all %}
+                                    <button type="button" class="option-btn px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-yellow-500 hover:text-white"
+                                            data-option="{{ option.name }}" data-price="{{ option.price }}">
+                                        {{ option.name }} (+{{ option.price }} ฿)
+                                    </button>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                     <div>
-                        <!-- Add to Order Button -->
                         <button class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md add-to-order-btn"
                                 data-product-id="{{ product.id }}" data-price="{{ product.price }}">
                             Add to Order
@@ -66,10 +77,8 @@
                 {% endfor %}
             </div>
         </div>
-
-<!-- Cart/Bag Information -->
-<div class="flex flex-col bg-white p-8 rounded-lg shadow-lg w-full md:w-1/2 ml-4 "> <!-- เพิ่ม ml-4 ที่นี่ -->
-    <!-- Header: Order Number and Total -->
+<!-- Cart Information -->
+<div class="flex flex-col bg-white p-8 rounded-lg shadow-lg w-full md:w-1/2 ml-4">
     <div class="flex justify-between items-center mb-6">
         {% if order %}
         <div>
@@ -77,36 +86,29 @@
             <p class="text-sm text-gray-500">Total Items: {{ total_quantity }}</p>
         </div>
         {% endif %}
-        <p class="text-xl font-semibold text-gray-600">Total: {{ total_price }} ฿</p>
+        <p class="text-xl font-semibold text-gray-600"> Total: {{ total_price }} </p>
     </div>
 
-    <!-- Customer Info Form -->
     <div class="mb-6">
         <form method="POST" action="{% url 'PayNow' %}">
             {% csrf_token %}
-            
             <div class="flex gap-4 mb-4">
-                <!-- Name Field -->
                 <div class="w-full">
                     <label for="customer_name" class="block text-sm font-medium text-gray-700">Name</label>
                     <input type="text" id="customer_name" name="customer_name" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" required>
                 </div>
 
-                <!-- Phone Number Field -->
                 <div class="w-full">
                     <label for="customer_phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
                     <input type="text" id="customer_phone" name="customer_phone" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" required>
                 </div>
             </div>
 
-            <!-- Cart Items (still inside the form) -->
             <div class="flex-1 overflow-auto mb-6">
                 {% if order and order.order_details.all %}
-                    <!-- Loop through each order detail to display cart items -->
-                    {% for detail in order.order_details.all %}
+                     {% for detail in order.order_details.all %}
                     <div class="flex items-center justify-between p-4 border-b border-gray-200">
                         <div class="flex items-center gap-4">
-                            <!-- Product Image -->
                             <div class="w-16 h-16 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
                                 {% if detail.product.img_product %}
                                     <img src="{{ detail.product.img_product.url }}" alt="{{ detail.product.product_name }}" class="w-full h-full object-cover">
@@ -116,12 +118,18 @@
                             </div>
                             <div>
                                 <h3 class="text-sm font-medium text-gray-700">{{ detail.product.product_name }}</h3>
-                                <p class="text-xs text-gray-500">{{ detail.options }}</p>
+                                <p class="text-xs text-gray-500">
+                                    {% if detail.options.all %}
+                                        {% for option in detail.options.all %}
+                                            {{ option.name }} (+{{ option.price }} ฿)<br>
+                                        {% endfor %}
+                                    {% else %}
+                                    {% endif %}
+                                </p> 
                             </div>
                         </div>
-
+                    
                         <div class="flex items-center gap-4">
-                            <!-- Quantity Controls -->
                             <div class="flex items-center gap-2">
                                 <button class="update-quantity bg-gray-300 text-gray-700 rounded px-3 py-1"
                                         data-action="decrement" data-order-detail-id="{{ detail.id }}">-</button>
@@ -129,9 +137,7 @@
                                 <button class="update-quantity bg-gray-300 text-gray-700 rounded px-3 py-1"
                                         data-action="increment" data-order-detail-id="{{ detail.id }}">+</button>
                             </div>
-                            <!-- Price -->
                             <div class="text-sm font-semibold text-gray-700 ml-4">{{ detail.price }} ฿</div>
-                            <!-- Delete Button -->
                             <button class="delete-order-detail text-red-500 ml-4"
                                     data-order-detail-id="{{ detail.id }}">🗑️</button>
                         </div>
@@ -143,7 +149,6 @@
                 {% endif %}
             </div>
 
-            <!-- Pay Now Button (aligned to the bottom) -->
             <div class="mt-auto flex justify-center">
                 <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-md">
                     Pay Now
@@ -151,11 +156,9 @@
             </div>
         </form>
     </div>
-</div> <!-- End Cart Section -->
-    </div> <!-- End Product List and Cart Information Section -->
-</div> <!-- End Container for Main Content -->
+</div>
+</div> 
 
-<!-- Pagination Links -->
 <div class="container mx-auto my-4">
     <div class="flex justify-center">
         <nav class="flex items-center space-x-2">
@@ -165,14 +168,12 @@
                Previous
             </a>
             {% endif %}
-
             {% for num in page_obj.paginator.page_range %}
             <a href="?page={{ num }}&category={{ category }}&q={{ query }}"
                class="px-4 py-2 border rounded {% if page_obj.number == num %}bg-yellow-500 text-white{% else %}bg-white text-gray-700 border-gray-300{% endif %} hover:bg-gray-100">
                {{ num }}
             </a>
             {% endfor %}
-
             {% if page_obj.has_next %}
             <a href="?page={{ page_obj.next_page_number }}&category={{ category }}&q={{ query }}"
                class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-100">
@@ -184,111 +185,145 @@
 </div>
 
 <script>
-    // Update quantity of order item (increment/decrement)
-    document.querySelectorAll('.update-quantity').forEach(button => {
-        button.addEventListener('click', function() {
-            const order_detail_id = this.getAttribute('data-order-detail-id');
-            const action = this.getAttribute('data-action');
-            const quantityElement = document.querySelector(`#quantity-${order_detail_id}`);
-            let quantity = parseInt(quantityElement.innerText);
+// Handle Option Button Click
+document.querySelectorAll('.option-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        // Toggle 'active' class for selected options
+        this.classList.toggle('bg-yellow-500');
+        this.classList.toggle('text-white');
+    });
+});
 
-            if (action === 'increment') quantity += 1;
-            else if (action === 'decrement' && quantity > 1) quantity -= 1;
+// Handle Add to Order button click
+document.querySelectorAll('.add-to-order-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        // Disable the button to prevent multiple clicks
+        this.disabled = true;
+        this.innerText = 'Adding...';
 
-            // Send updated quantity to backend via AJAX
-            fetch("{% url 'update_order_detail' %}", {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    'order_detail_id': order_detail_id,
-                    'quantity': quantity
-                })
+        const productId = this.getAttribute('data-product-id');  // Get the product ID
+        const price = this.getAttribute('data-price');  // Get the base price of the product
+
+        // Initialize an empty array for selected options
+        const selectedOptions = [];
+
+        // Find the selected options for this product
+        const optionButtons = document.querySelectorAll(`#options-${productId} .option-btn.bg-yellow-500`);
+        optionButtons.forEach(optionBtn => {
+            selectedOptions.push(optionBtn.getAttribute('data-option'));  // Push the option to the array
+        });
+
+        // Send the selected product and options to the server using fetch
+        fetch('/add_to_order/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')  // Ensure CSRF token is sent
+            },
+            body: JSON.stringify({
+                product_id: productId,
+                options: selectedOptions,  // Array of selected options
+                quantity: 1  // Set quantity to 1 (or get from UI if you want)
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    quantityElement.innerText = quantity;  // Update quantity on page
-                    window.location.reload();  // Refresh the page to update the cart info
-                } else {
-                    console.error(data.message);
-                }
-            })
-            .catch(error => console.log(error));
+        })
+        .then(response => response.json())  // Parse the JSON response
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Product added to order successfully!');
+                window.location.reload();  // Reload the page to update the cart
+            } else {
+                alert(data.message || 'Error occurred while adding product');
+            }
+
+            this.disabled = false;
+            this.innerText = 'Add to Order';  // Reset the button text
+        })
+        .catch(error => {
+            console.log(error);
+            alert('An error occurred while adding the product to the order');
+            this.disabled = false;
+            this.innerText = 'Add to Order';  // Reset the button text on error
         });
     });
+});
 
-    // Delete item from cart
-    document.querySelectorAll('.delete-order-detail').forEach(button => {
-        button.addEventListener('click', function() {
-            const order_detail_id = this.getAttribute('data-order-detail-id');
+// Utility function to get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 
-            // Send delete request to backend via AJAX
-            fetch("{% url 'delete_order_detail' %}", {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    'order_detail_id': order_detail_id
-                })
+// Update quantity of order item
+document.querySelectorAll('.update-quantity').forEach(button => {
+    button.addEventListener('click', function() {
+        const order_detail_id = this.getAttribute('data-order-detail-id');
+        const action = this.getAttribute('data-action');
+        const quantityElement = document.querySelector(`#quantity-${order_detail_id}`);
+        let quantity = parseInt(quantityElement.innerText);
+
+        if (action === 'increment') quantity += 1;
+        else if (action === 'decrement' && quantity > 1) quantity -= 1;
+
+        fetch("{% url 'update_order_detail' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                'order_detail_id': order_detail_id,
+                'quantity': quantity
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    window.location.reload();  // Refresh the page to update the cart info
-                } else {
-                    console.error(data.message);
-                }
-            })
-            .catch(error => console.log(error));
-        });
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                quantityElement.innerText = quantity;
+                window.location.reload();
+            } else {
+                console.error(data.message);
+            }
+        })
+        .catch(error => console.log(error));
     });
+});
 
-    // Handle Add to Order button click
-    document.querySelectorAll('.add-to-order-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const productId = this.getAttribute('data-product-id');
-            const price = this.getAttribute('data-price');
+// Delete item from cart
+document.querySelectorAll('.delete-order-detail').forEach(button => {
+    button.addEventListener('click', function() {
+        const order_detail_id = this.getAttribute('data-order-detail-id');
 
-            // รับตัวเลือก (ถ้ามี) เช่น SUGAR, FOAM, HOT, COLD
-            let options = [];
-            document.querySelectorAll('.option-btn.active').forEach(optionBtn => {
-                options.push(optionBtn.getAttribute('data-option'));
-            });
-
-            // ส่งข้อมูลไปยัง backend ผ่าน AJAX
-            fetch("{% url 'add_to_order' %}", {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    'product_id': productId,
-                    'options': options.join(','),  // ส่งตัวเลือกเป็น string ที่คั่นด้วย comma
-                    'quantity': 1  // จำนวนเริ่มต้น 1
-                })
+        fetch("{% url 'delete_order_detail' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                'order_detail_id': order_detail_id
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Refresh the page to update cart information
-                    window.location.reload();
-                } else {
-                    console.error(data.message); // จัดการกรณีเกิดข้อผิดพลาด
-                }
-            })
-            .catch(error => {
-                console.log('Error:', error);
-            });
-        });
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.reload();
+            } else {
+                console.error(data.message);
+            }
+        })
+        .catch(error => console.log(error));
     });
+});
 </script>
-
 </body>
 </html>
-
