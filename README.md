@@ -2,9 +2,6 @@
 # ติดตั้ง
 pip install -r requirements.txt
 
-# เข้าไปในโปรเจกต์
-cd myposapp
-
 # makemigrations
 python manage.py makemigrations
 
