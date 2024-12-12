@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'tailwind',
     'theme',
     'django_browser_reload',
+    'django_dbml',
     'myapp',
 ]
 NPM_BIN_PATH = r"C:\Program Files\nodejs\npm.cmd"
@@ -127,11 +128,11 @@ STATIC_URL = "/static/"
 
 # กำหนดเส้นทางเพิ่มเติมสำหรับ static files (เช่น รูปภาพ ไฟล์ CSS, JavaScript ที่จะไม่ถูกเก็บใน media)
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'myapp', 'img'),  # ใส่เส้นทางไปยัง static files ที่ต้องการจัดเก็บเพิ่มเติม
+    os.path.join(BASE_DIR, 'img'),  # ใส่เส้นทางไปยัง static files ที่ต้องการจัดเก็บเพิ่มเติม
 ]
 # Media files (ไฟล์ที่ผู้ใช้สามารถอัปโหลดได้ เช่น รูปภาพ, ไฟล์เสียง, วิดีโอ)
 MEDIA_URL = '/media/'  # URL สำหรับเข้าถึงไฟล์ media
-MEDIA_ROOT = os.path.join(BASE_DIR, 'myapp', 'img')  # เส้นทางในระบบไฟล์ของโปรเจกต์
+MEDIA_ROOT = os.path.join(BASE_DIR, 'img')  # เส้นทางในระบบไฟล์ของโปรเจกต์
 
 
 '''

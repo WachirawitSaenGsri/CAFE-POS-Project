@@ -20,21 +20,21 @@
     {% include 'component/navbar.html' %}
 
     <div class="container mx-auto p-6 ml-20">
-        <h1 class="text-2xl font-semibold mb-6 ml-48">Product Management</h1>
+        <h1 class="text-2xl font-semibold mb-6 ml-48">จัดการโปรดักส์</h1>
     <div class="mb-6 ml-48">
         <form action="{% url 'addmenu' %}" method="GET" class="flex items-center gap-4">
-            <input type="text" name="search" placeholder="Search products..." class="p-2 w-1/3 border border-gray-300 rounded-md" value="{{ search_query }}">
+            <input type="text" name="search" placeholder="ค้นหา..." class="p-2 w-1/3 border border-gray-300 rounded-md" value="{{ search_query }}">
             <button type="submit" class="bg-yellow-500 text-white px-6 py-2 rounded-md hover:bg-yellow-600">
-                Search
+                ค้นหา
             </button>
         </form>
     </div>
         <div class="mb-6 flex justify-end gap-6">
             <button id="openAddProductModal" class="bg-yellow-500 text-white px-6 py-2 rounded-md hover:bg-yellow-600">
-                Add Product
+                เพิ่มโปรดักส์
             </button>
             <button id="openAddCategoryModal" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600">
-                Add Category
+                เพิ่มหมวดหมู่
             </button>
         </div>
 
@@ -105,23 +105,23 @@
     <!-- Modal for Add Product -->
     <div id="addProductModal" class="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50 hidden">
         <div class="bg-white rounded-lg shadow-lg w-1/2 p-6">
-            <h2 class="text-2xl font-semibold mb-4">Add New Product</h2>
+            <h2 class="text-2xl font-semibold mb-4">เพิ่มโปรดักส์ใหม่</h2>
             <form id="addProductForm" method="POST" enctype="multipart/form-data" action="{% url 'add_product' %}">
                 {% csrf_token %}
                 <div class="mb-4">
-                    <label for="product_name" class="block text-sm font-medium text-gray-700">Product Name</label>
+                    <label for="product_name" class="block text-sm font-medium text-gray-700">ชื่อโปรดักส์</label>
                     <input type="text" name="product_name" id="product_name" class="mt-1 p-2 w-full border border-gray-300 rounded-md" required>
                 </div>
                 <div class="mb-4">
-                    <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                    <label for="description" class="block text-sm font-medium text-gray-700">คำอธิบาย</label>
                     <textarea name="description" id="description" class="mt-1 p-2 w-full border border-gray-300 rounded-md" required></textarea>
                 </div>
                 <div class="mb-4">
-                    <label for="price" class="block text-sm font-medium text-gray-700">Price</label>
+                    <label for="price" class="block text-sm font-medium text-gray-700">ราคา</label>
                     <input type="number" name="price" id="price" class="mt-1 p-2 w-full border border-gray-300 rounded-md" required>
                 </div>
                 <div class="mb-4">
-                    <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
+                    <label for="category" class="block text-sm font-medium text-gray-700">หมวดหมู่</label>
                     <select name="category" id="category" class="w-full border border-gray-300 rounded px-3 py-2">
                         {% for category in form.fields.category.queryset %}
                             <option value="{{ category.id }}">{{ category.name }}</option>
@@ -130,7 +130,7 @@
                 </div>
 
                 <div id="options-section">
-                    <h3 class="text-lg font-semibold">Options</h3>
+                    <h3 class="text-lg font-semibold">ตัวเลือก</h3>
                     <div id="options-list"></div>
                     <button type="button" id="add-option-btn" class="bg-blue-500 text-white px-4 py-2 rounded mt-4">
                         Add Option
@@ -138,16 +138,16 @@
                 </div>
 
                 <div class="mb-4">
-                    <label for="img_product" class="block text-sm font-medium text-gray-700">Image</label>
+                    <label for="img_product" class="block text-sm font-medium text-gray-700">รูปภาพ</label>
                     <input type="file" name="img_product" id="img_product" class="mt-1 p-2 w-full border border-gray-300 rounded-md" accept="image/*" required>
                 </div>
 
                 <div class="flex justify-end gap-4 mt-4">
                     <button type="button" id="closeAddProductModal" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400">
-                        Cancel
+                        ยกเลิก
                     </button>
                     <button type="submit" class="bg-yellow-500 text-white px-6 py-2 rounded-md hover:bg-yellow-600 transition duration-300">
-                        Add Product
+                        เพิ่มโปรดักส์ใหม่
                     </button>
                 </div>
             </form>
@@ -157,19 +157,19 @@
     <!-- Modal for Add Category -->
     <div id="addCategoryModal" class="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50 hidden">
         <div class="bg-white rounded-lg shadow-lg w-1/2 p-6">
-            <h2 class="text-2xl font-semibold mb-4">Add New Category</h2>
+            <h2 class="text-2xl font-semibold mb-4">เพิ่มหมวดหมู่</h2>
             <form id="addCategoryForm" method="POST">
                 {% csrf_token %}
                 <div class="mb-4">
-                    <label for="category_name" class="block text-sm font-medium text-gray-700">Category Name</label>
+                    <label for="category_name" class="block text-sm font-medium text-gray-700">ชื่อหมวดหมู่</label>
                     <input type="text" name="category_name" id="category_name" class="mt-1 p-2 w-full border border-gray-300 rounded-md" required>
                 </div>
                 <div class="flex justify-end gap-4 mt-4">
                     <button type="button" id="closeAddCategoryModal" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400">
-                        Cancel
+                        ยกเลิก
                     </button>
                     <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition duration-300">
-                        Add Category
+                        เพิ่มหมวดหมูใหม่
                     </button>
                 </div>
             </form>

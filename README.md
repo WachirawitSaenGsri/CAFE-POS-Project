@@ -1,6 +1,6 @@
 # Cafe Pos
 # ติดตั้ง
-pip install -r install.txt
+pip install -r requirements.txt
 
 # เข้าไปในโปรเจกต์
 cd myposapp
