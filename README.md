@@ -11,7 +11,5 @@ python manage.py migrate
 python manage.py load_xlsx -i myapp/fixtures/DATA.xlsx
 
 # รัน
-python manage.py tailwind start
-
 python manage.py runserver
 
