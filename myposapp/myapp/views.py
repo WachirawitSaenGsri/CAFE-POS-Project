@@ -39,24 +39,48 @@ def user_logout(request):
 
 def register(request):
     if request.method == 'POST':
-        username = request.POST['username']
-        email = request.POST['email']
-        password = request.POST['password']
-        confirm_password = request.POST['confirm_password']
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '')
+        confirm_password = request.POST.get('confirm_password', '')
+        firstname = request.POST.get('firstname', '').strip()
+        lastname = request.POST.get('lastname', '').strip()
 
-        if password == confirm_password:
-            if not User.objects.filter(username=username).exists():
-                if not User.objects.filter(email=email).exists():  # ตรวจสอบว่ามีอีเมลซ้ำหรือไม่
-                    user = User.objects.create_user(username=username, email=email, password=password)
-                    Member.objects.create(user=user, extra_info="Default info")
-                    messages.success(request, 'การลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบ.')
-                    return redirect('login')
-                else:
-                    messages.error(request, 'อีเมลนี้ถูกใช้งานแล้ว')
-            else:
-                messages.error(request, 'ชื่อผู้ใช้นี้ถูกใช้งานแล้ว')
-        else:
+        # ตรวจสอบข้อมูลพื้นฐาน
+        if not username or not email or not password or not confirm_password or not firstname or not lastname:
+            messages.error(request, 'กรุณากรอกข้อมูลให้ครบถ้วน')
+            return render(request, 'register.html')
+
+        if password != confirm_password:
             messages.error(request, 'รหัสผ่านไม่ตรงกัน')
+            return render(request, 'register.html')
+
+        if len(password) < 8:
+            messages.error(request, 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร')
+            return render(request, 'register.html')
+
+        # ตรวจสอบว่า username และ email ไม่ซ้ำ
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'ชื่อผู้ใช้นี้ถูกใช้งานแล้ว')
+            return render(request, 'register.html')
+
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'อีเมลนี้ถูกใช้งานแล้ว')
+            return render(request, 'register.html')
+
+        # สร้าง User และ Member
+        try:
+            user = User.objects.create_user(username=username, email=email, password=password)
+            user.first_name = firstname
+            user.last_name = lastname
+            user.save()
+            Member.objects.create(user=user)
+            messages.success(request, 'การลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบ.')
+            return redirect('login')
+        except Exception as e:
+            print(f"Error during registration: {e}")
+            messages.error(request, 'เกิดข้อผิดพลาดในการลงทะเบียน กรุณาลองใหม่')
+
     return render(request, 'register.html')
 
 
@@ -119,6 +143,7 @@ def Order1(request):
 
 
 @login_required
+@transaction.atomic
 def PayMent(request, order_id):
     order = get_object_or_404(Order, id=order_id)
 
@@ -142,16 +167,23 @@ def PayMent(request, order_id):
         form = PaymentForm(request.POST)
         if form.is_valid():
             payment_method = form.cleaned_data['payment_method']
+            amount_paid = form.cleaned_data['amount_paid']
 
             # Simulate payment logic here
             payment = Payment.objects.create(
                 order=order,
-                amount=order.total_price,
+                amount=amount_paid,
                 payment_method=payment_method,
                 payment_status="Success"  # Change to dynamic status if integrating payment gateway
             )
 
-            messages.success(request, "Payment completed successfully!")
+            # Calculate change
+            change = amount_paid - total_order_price
+            if change < 0:
+                messages.error(request, f'Insufficient amount. You still owe {-change} ฿')
+            else:
+                messages.success(request, f'Payment completed successfully! Change: {change} ฿')
+
             return redirect('History_Order')  # Redirect to order history or confirmation page
 
     else:

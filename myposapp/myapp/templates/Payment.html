@@ -10,6 +10,40 @@
         body {
             font-family: 'Kanit', sans-serif;
         }
+        /* Numpad style */
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 10px;
+        }
+        .numpad button {
+            padding: 20px;
+            font-size: 20px;
+            background-color: #f3f4f6;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .numpad button:hover {
+            background-color: #fef08a;
+        }
+        .numpad button:active {
+            background-color: #eab308;
+        }
+        .numpad button.clear {
+            background-color: #f87171;
+            color: white;
+        }
+        .numpad button.clear:hover {
+            background-color: #ef4444;
+        }
+
+        /* Hide numpad initially */
+        #numpad {
+            display: none;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -20,51 +54,133 @@
         <h1 class="text-2xl font-bold mb-4 ml-20">Payment for Order #{{ order.id }}</h1>
         <p class="text-lg mb-4 ml-20">Total Amount: <strong>{{ total_order_price }} ฿</strong></p>
 
-        <div class="bg-gray-100 p-4 rounded-md mb-6 ml-20">
-            <h2 class="text-xl font-semibold mb-3">Order Details</h2>
-            <table class="table-auto w-full text-left border-collapse">
-                <thead>
-                    <tr>
-                        <th class="border-b py-2">Product</th>
-                        <th class="border-b py-2">Options</th> <!-- Display options -->
-                        <th class="border-b py-2">Quantity</th>
-                        <th class="border-b py-2">Unit Price</th>
-                        <th class="border-b py-2">Total Item Price</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for detail in order_details %}
-                    <tr>
-                        <td class="py-2">{{ detail.product.product_name }}</td>
-                        <td class="py-2">
-                            {% if detail.options.all %}
-                                {% for option in detail.options.all %}
-                                    {{ option.name }} (+{{ option.price }} ฿)<br>
-                                {% endfor %}
-                            {% else %}
-                                No options selected
-                            {% endif %}
-                        </td>
-                        <td class="py-2">{{ detail.quantity }}</td>
-                        <td class="py-2">{{ detail.price }} ฿</td>
-                        <td class="py-2">{{ detail.price|add:0 }} ฿</td> <!-- Display the total item price -->
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- Use flex layout to align order details on the left and payment form on the right -->
+        <div class="flex justify-between space-x-10 ml-20">
+            <!-- Order Details Section -->
+            <div class="flex-1 bg-white shadow-lg rounded-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-3 text-gray-800">Order Details</h2>
+                <table class="table-auto w-full text-left border-collapse">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="border-b py-2 px-4 text-sm font-medium text-gray-700">Product</th>
+                            <th class="border-b py-2 px-4 text-sm font-medium text-gray-700">Options</th>
+                            <th class="border-b py-2 px-4 text-sm font-medium text-gray-700">Quantity</th>
+                            <th class="border-b py-2 px-4 text-sm font-medium text-gray-700">Unit Price</th>
+                            <th class="border-b py-2 px-4 text-sm font-medium text-gray-700">Total Item Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detail in order_details %}
+                        <tr class="border-b">
+                            <td class="py-2 px-4 text-sm">{{ detail.product.product_name }}</td>
+                            <td class="py-2 px-4 text-sm">
+                                {% if detail.options.all %}
+                                    {% for option in detail.options.all %}
+                                        {{ option.name }} (+{{ option.price }} ฿)<br>
+                                    {% endfor %}
+                                {% else %}
+                                    No options selected
+                                {% endif %}
+                            </td>
+                            <td class="py-2 px-4 text-sm">{{ detail.quantity }}</td>
+                            <td class="py-2 px-4 text-sm">{{ detail.price }} ฿</td>
+                            <td class="py-2 px-4 text-sm">{{ detail.price|add:0 }} ฿</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
 
-            <div class="mt-4 text-left font-semibold">
-                <p>Total Order Price: <strong>{{ total_order_price }} ฿</strong></p>
+                <div class="mt-4 text-left font-semibold">
+                    <p>Total Order Price: <strong>{{ total_order_price }} ฿</strong></p>
+                </div>
+            </div>
+
+            <!-- Payment Form Section -->
+            <div class="w-1/3 bg-white shadow-lg rounded-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-3 text-gray-800">Payment Method</h2>
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+
+                    <!-- Field for customer to input amount paid -->
+                    <div class="mb-4">
+                        <label for="amount_paid" class="block text-sm font-medium text-gray-700">จำนวนเงินที่ชำระ (฿)</label>
+                        <input type="number" id="amount_paid" name="amount_paid" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" required min="0" step="0.01" placeholder="จำนวนเงินที่ชำระ" readonly>
+                    </div>
+
+                    <!-- Numpad Section -->
+                    <div id="numpad" class="numpad">
+                        <button type="button" onclick="addNumber(1)">1</button>
+                        <button type="button" onclick="addNumber(2)">2</button>
+                        <button type="button" onclick="addNumber(3)">3</button>
+                        <button type="button" onclick="addNumber(4)">4</button>
+                        <button type="button" onclick="addNumber(5)">5</button>
+                        <button type="button" onclick="addNumber(6)">6</button>
+                        <button type="button" onclick="addNumber(7)">7</button>
+                        <button type="button" onclick="addNumber(8)">8</button>
+                        <button type="button" onclick="addNumber(9)">9</button>
+                        <button type="button" onclick="addNumber(0)">0</button>
+                        <button type="button" class="clear" onclick="clearAmount()">Clear</button>
+                    </div>
+
+                    <!-- Display the change (if any) -->
+                    <div id="change_message" class="mt-4 text-left font-semibold text-lg text-green-600">
+                        <!-- The change message will be dynamically displayed after the user enters the amount paid -->
+                    </div>
+
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md mt-4">
+                        Confirm Payment
+                    </button>
+                </form>
             </div>
         </div>
 
-        <form method="POST" class="ml-20">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md">
-                Confirm Payment
-            </button>
-        </form>
     </div>
+
+    <script>
+        // JavaScript to calculate and display the change when the user enters the amount paid
+        document.getElementById('amount_paid').addEventListener('input', function() {
+            var totalAmount = {{ total_order_price }};  // Total order price from Django context
+            var amountPaid = parseFloat(this.value);
+
+            if (!isNaN(amountPaid) && amountPaid >= totalAmount) {
+                var change = amountPaid - totalAmount;
+                document.getElementById('change_message').innerHTML = "เงินที่ต้องทอน: <strong>" + change.toFixed(2) + " ฿</strong>";
+            } else {
+                document.getElementById('change_message').innerHTML = "";
+            }
+        });
+
+        // Show/hide numpad based on selected payment method
+        const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
+        paymentMethodRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                const numpad = document.getElementById('numpad');
+                const amountPaidField = document.getElementById('amount_paid');
+
+                if (this.value === 'cash') {
+                    numpad.style.display = 'grid';  // Show numpad
+                    amountPaidField.readOnly = false;  // Enable amount input
+                } else {
+                    numpad.style.display = 'none';  // Hide numpad
+                    amountPaidField.readOnly = true;  // Disable amount input for non-cash payments
+                }
+            });
+        });
+
+        // Add number to the amount_paid field
+        function addNumber(number) {
+            var amountPaid = document.getElementById('amount_paid');
+            amountPaid.value = amountPaid.value + number;
+            amountPaid.dispatchEvent(new Event('input'));  // Trigger the change message update
+        }
+
+        // Clear the amount_paid field
+        function clearAmount() {
+            var amountPaid = document.getElementById('amount_paid');
+            amountPaid.value = '';
+            amountPaid.dispatchEvent(new Event('input'));  // Trigger the change message update
+        }
+    </script>
 </body>
-</html> 
+</html>

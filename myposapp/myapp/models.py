@@ -6,7 +6,7 @@ class Member(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='member_profile')
 
     def __str__(self):
-        return self.user.username
+        return f"{self.user.first_name} {self.user.last_name} ({self.user.username})"
 
 # เพิ่มหมวดหมู่สินค้าเป็น model แยก
 class Category(models.Model):
@@ -63,7 +63,7 @@ class OrderDetail(models.Model):
 class Payment(models.Model):
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="payment")
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_method = models.CharField(max_length=50)  # e.g., "credit card", "cash"
+    payment_method = models.CharField(max_length=50)  # e.g.,  "cash"
     payment_status = models.CharField(max_length=20, default="Pending")  # e.g., "Success", "Failed"
     created_at = models.DateTimeField(auto_now_add=True)
 
