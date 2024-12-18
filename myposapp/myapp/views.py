@@ -14,9 +14,15 @@ from django.core.paginator import Paginator
 from .forms import *
 from django.db import transaction
 from myapp.models import Product, Order, OrderDetail, Option, Category, Payment
-
-
-
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.template.loader import render_to_string
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.http import HttpResponse
+from .forms import PasswordResetRequestForm, PasswordResetForm
+from django.urls import reverse
 
 def user_login(request):
     if request.method == 'POST':
@@ -82,56 +88,6 @@ def register(request):
             messages.error(request, 'เกิดข้อผิดพลาดในการลงทะเบียน กรุณาลองใหม่')
 
     return render(request, 'register.html')
-
-
-
-def forgot_password(request):
-    if request.method == 'POST':
-        email = request.POST['email']
-        users = User.objects.filter(email=email)
-
-        if users.exists():
-            # Redirect to second step: password reset page
-            return render(request, 'forgot_password2.html', {'email': email})
-        else:
-            messages.error(request, 'ไม่พบบัญชีที่ใช้ที่อยู่อีเมลนี้')
-            return redirect('forgot_password')
-
-    return render(request, 'forgot_password.html')
-@csrf_protect
-def reset_password(request):
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        new_password = request.POST.get('new_password')
-        confirm_password = request.POST.get('confirm_password')
-
-        if new_password != confirm_password:
-            messages.error(request, 'รหัสผ่านไม่ตรงกัน โปรดลองอีกครั้ง')
-            return render(request, 'forgot_password2.html', {'email': email})
-
-        if len(new_password) < 8:
-            messages.error(request, 'รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร')
-            return render(request, 'forgot_password2.html', {'email': email})
-
-        if not any(char.isdigit() for char in new_password):
-            messages.error(request, 'รหัสผ่านต้องมีอย่างน้อยหนึ่งตัวเลข')
-            return render(request, 'forgot_password2.html', {'email': email})
-
-        if not any(char.isalpha() for char in new_password):
-            messages.error(request, 'รหัสผ่านต้องมีตัวอักษรอย่างน้อยหนึ่งตัว')
-            return render(request, 'forgot_password2.html', {'email': email})
-
-        try:
-            user = User.objects.get(email=email)
-            user.password = make_password(new_password)
-            user.save()
-            messages.success(request, 'รหัสผ่านของคุณถูกรีเซ็ตเรียบร้อยแล้ว! กรุณาเข้าสู่ระบบ.')
-            return redirect('login')
-        except User.DoesNotExist:
-            messages.error(request, 'ไม่พบบัญชีที่ใช้ที่อยู่อีเมลนี้')
-            return redirect('forgot_password')
-
-    return redirect('forgot_password')
 
 @login_required
 def Menu(request):

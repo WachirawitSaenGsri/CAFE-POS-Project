@@ -3,6 +3,7 @@ from django.urls import path
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.auth import views as auth_views
 
 
 urlpatterns = [
@@ -22,13 +23,16 @@ urlpatterns = [
     path('add_to_order/', views.add_to_order, name='add_to_order'),  # เพิ่มเส้นทางสำหรับเพิ่มสินค้าใน order
     path('update_order_detail/', views.update_order_detail, name='update_order_detail'),
     path('delete_order_detail/', views.delete_order_detail, name='delete_order_detail'),
-    path('forgot-password/', views.forgot_password, name='forgot_password'),
-    path('reset-password/', views.reset_password, name='reset_password'),
     path('Payment/', views.PayNow, name='PayNow'),
     path('add_product/', views.add_product, name='add_product'),
     path('edit_product/<int:product_id>/', views.edit_product, name='edit_product'),
     path('delete_product/<int:product_id>/', views.delete_product, name='delete_product'),
     path('add_category/', views.add_category, name='add_category'),
+    path('password_reset/', auth_views.PasswordResetView.as_view(template_name='password_reset_form.html'), name='password_reset'),
+    path('password_reset_done/', auth_views.PasswordResetDoneView.as_view(template_name='password_reset_done.html'), name='password_reset_done'),
+    path('password_reset_confirm/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='password_reset_confirm.html'), name='password_reset_confirm'),
+    path('password_reset_complete/', auth_views.PasswordResetCompleteView.as_view(template_name='password_reset_complete.html'), name='password_reset_complete'),
+
 
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

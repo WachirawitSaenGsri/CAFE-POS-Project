@@ -3,10 +3,16 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class Member(models.Model):
+    ROLE_CHOICES = (
+        ('admin', 'Admin'),
+        ('staff', 'Staff'),
+        ('unknown', 'Unknown'),
+    )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='member_profile')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='unknown')
 
     def __str__(self):
-        return f"{self.user.first_name} {self.user.last_name} ({self.user.username})"
+        return f"{self.user.first_name} {self.user.last_name} ({self.user.username}) - {self.role}"
 
 # เพิ่มหมวดหมู่สินค้าเป็น model แยก
 class Category(models.Model):
@@ -69,3 +75,4 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Payment for Order #{self.order.id} - {self.payment_status}"
+

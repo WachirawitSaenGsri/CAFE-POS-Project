@@ -135,14 +135,10 @@ MEDIA_URL = '/media/'  # URL สำหรับเข้าถึงไฟล์
 MEDIA_ROOT = os.path.join(BASE_DIR, 'img')  # เส้นทางในระบบไฟล์ของโปรเจกต์
 
 
-'''
-# Default primary key field type
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-#EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-EMAIL_HOST = 'mrokingsize@gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'mrokingsize@gmail.com'  # อีเมลที่ใช้ส่ง
-EMAIL_HOST_PASSWORD = '1597537aaa'  # รหัสผ่านอีเมล
-'''
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # หรือโฮสต์ SMTP ที่คุณใช้
+EMAIL_PORT = 587  # ใช้ 587 สำหรับ TLS หรือ 465 สำหรับ SSL
+EMAIL_USE_TLS = True  # ถ้าใช้ TLS
+EMAIL_HOST_USER = 'wachirawit.sa.65@ubu.ac.th'  # อีเมลผู้ส่ง
+EMAIL_HOST_PASSWORD = 'lmjg ttaa xcvb kuda'  # รหัสผ่านของอีเมล
+DEFAULT_FROM_EMAIL = 'wachirawit.sa.65@ubu.ac.th'

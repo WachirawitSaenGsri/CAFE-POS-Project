@@ -158,7 +158,7 @@
         </div>
         <div class="login-right">
             <h2>Cafe POS</h2>
-            <p class="text-center mb-8">Please enter your login information</p>
+            <p class="text-center mb-8">กรุณาป้อนข้อมูลเข้าสู่ระบบของคุณ</p>
             <form method="post">
                 {% csrf_token %}
                 <div class="form-group">
@@ -176,15 +176,15 @@
                     <label for="remember">Remember me</label>
                 </div>
 
-                <button type="submit" class="btn">Login</button>
+                <button type="submit" class="btn">เข้าสู่ระบบ</button>
             </form>
 
             <div class="link">
-                <a href="{% url "forgot_password" %}">Forget Password?</a>
+                <a href="{% url "password_reset" %}">ลืมรหัสผ่าน?</a>
             </div>
             <div class="register-link">
-                Don't Have an account?
-                <a href="{% url 'register' %}" class="btn-register">Register</a>
+                ยังไม่ได้มีบัญชี?
+                <a href="{% url 'register' %}" class="btn-register">สมัครสมาชิก</a>
             </div>
 
             {% if messages %}
