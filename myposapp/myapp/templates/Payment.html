@@ -93,8 +93,8 @@
                             {% endif %}
                         </td>
                         <td class="py-2 px-4 text-sm">{{ detail.quantity }}</td>
-                        <td class="py-2 px-4 text-sm">{{ detail.price }} ฿</td>
-                        <td class="py-2 px-4 text-sm">{{ detail.price|add:0 }} ฿</td>
+                        <td class="py-2 px-4 text-sm">{{ detail.unit_price }} ฿</td>
+                        <td class="py-2 px-4 text-sm">{{ detail.total_item_price }} ฿</td>
                     </tr>
                     {% empty %}
                         <tr>

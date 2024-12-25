@@ -171,31 +171,50 @@ def PayNow(request, order_id):
         'order': order,
     })
 
-@login_required
+from decimal import Decimal
+
 @transaction.atomic
+@login_required
 def PayMent(request, order_id):
-    # ดึงข้อมูลคำสั่งซื้อจากฐานข้อมูลตาม order_id
+    # Get the order from the database
     order = get_object_or_404(Order, id=order_id)
 
-    # คำนวณราคา total ของคำสั่งซื้อและดึงข้อมูล order details
-    total_order_price = sum([detail.quantity * detail.price for detail in order.order_details.all()])
-    order_details = [
-        {
-            'product_name': detail.product.product_name if detail.product else 'Product not found',
-            'quantity': detail.quantity,
-            'price': detail.price,
-            'total_item_price': detail.quantity * detail.price,
-            'options': detail.options,
-        }
-        for detail in order.order_details.all()
-    ]
+    # Initialize total order price
+    total_order_price = Decimal(0)  # Ensure this is a Decimal
 
-    # Handle the form submission (payment)
+    # List to hold order details with updated price calculation
+    order_details = []
+
+    # Loop through order details and calculate the unit price (product price + option prices)
+    for detail in order.order_details.all():
+        # Get the selected options for this product
+        selected_options = detail.options.all()
+        # Calculate the total option price
+        total_option_price = sum(option.price for option in selected_options)
+
+        # Calculate the unit price (base price of product + total price of selected options)
+        unit_price = detail.product.price + total_option_price
+
+        # Calculate the total price for this item (unit price * quantity)
+        total_item_price = unit_price * detail.quantity
+
+        # Update the order details with calculated prices
+        order_details.append({
+            'product_name': detail.product.product_name,
+            'quantity': detail.quantity,
+            'unit_price': unit_price,
+            'total_item_price': total_item_price,
+            'options': selected_options,
+        })
+
+        # Add the total item price to the overall total order price
+        total_order_price += total_item_price
+
+    # If the form is submitted, process the payment
     if request.method == 'POST':
         payment_method = request.POST.get('payment_method', None)
-        amount_paid = float(request.POST.get('amount_paid', 0))  # รับค่าจากผู้ใช้และแปลงเป็น float
+        amount_paid = Decimal(request.POST.get('amount_paid', 0))  # Convert amount_paid to Decimal
 
-        # ตรวจสอบว่า form ถูกต้องหรือไม่
         if not payment_method or not amount_paid:
             messages.error(request, 'กรุณากรอกข้อมูลการชำระเงินให้ครบถ้วน')
             return render(request, 'Payment.html', {
@@ -204,10 +223,10 @@ def PayMent(request, order_id):
                 'total_order_price': total_order_price,
             })
 
-        # คำนวณเงินทอน
-        change = amount_paid - float(total_order_price)  # แปลง total_order_price เป็น float ก่อน
+        # Calculate change
+        change = amount_paid - total_order_price  # Both operands are Decimal
 
-        # อัปเดตสถานะการชำระเงิน
+        # Save the payment details
         Payment.objects.create(
             order=order,
             amount=total_order_price,
@@ -215,9 +234,10 @@ def PayMent(request, order_id):
             payment_status='Success' if change >= 0 else 'Failed',
         )
 
-        # ส่งผลลัพธ์กลับไปยัง History_Order
+        # Redirect to order history page after successful payment
         return redirect('order')
 
+    # Render the payment page with order details
     return render(request, 'Payment.html', {
         'order': order,
         'order_details': order_details,
@@ -394,13 +414,22 @@ def update_order_detail(request):
             order_detail_id = data.get('order_detail_id')
             quantity = int(data.get('quantity', 1))
 
-            # ตรวจสอบว่ามี OrderDetail ที่ตรงกับ ID นี้
+            # Fetch the order detail
             order_detail = get_object_or_404(OrderDetail, id=order_detail_id)
+
+            # Fetch selected options and calculate the total option price
+            selected_options = order_detail.options.all()
+            total_option_price = sum(option.price for option in selected_options)
+
+            # Recalculate the price based on quantity and options
+            total_price = (order_detail.product.price + total_option_price) * quantity
+
+            # Update the order detail's quantity and price
             order_detail.quantity = quantity
-            order_detail.price = order_detail.product.price * quantity
+            order_detail.price = total_price
             order_detail.save()
 
-            # คำนวณราคาใหม่ของคำสั่งซื้อ
+            # Recalculate the total price of the entire order
             order_detail.order.total_price = sum([item.price for item in order_detail.order.order_details.all()])
             order_detail.order.save()
 

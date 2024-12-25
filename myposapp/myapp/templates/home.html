@@ -189,7 +189,6 @@
 </div>
 
 <script>
-// Handle Option Button Click
 document.querySelectorAll('.option-btn').forEach(button => {
     button.addEventListener('click', function() {
         // Toggle 'active' class for selected options
@@ -200,7 +199,9 @@ document.querySelectorAll('.option-btn').forEach(button => {
 
 // Handle Add to Order button click
 document.querySelectorAll('.add-to-order-btn').forEach(button => {
-    button.addEventListener('click', function() {
+    button.addEventListener('click', function(event) {
+        event.preventDefault();  // Prevent default form submission
+
         // Disable the button to prevent multiple clicks
         this.disabled = true;
         this.innerText = 'Adding...';
@@ -269,7 +270,9 @@ function getCookie(name) {
 
 // Update quantity of order item
 document.querySelectorAll('.update-quantity').forEach(button => {
-    button.addEventListener('click', function() {
+    button.addEventListener('click', function(event) {
+        event.preventDefault();  // Prevent default form submission
+
         const order_detail_id = this.getAttribute('data-order-detail-id');
         const action = this.getAttribute('data-action');
         const quantityElement = document.querySelector(`#quantity-${order_detail_id}`);
@@ -304,7 +307,9 @@ document.querySelectorAll('.update-quantity').forEach(button => {
 
 // Delete item from cart
 document.querySelectorAll('.delete-order-detail').forEach(button => {
-    button.addEventListener('click', function() {
+    button.addEventListener('click', function(event) {
+        event.preventDefault();  // Prevent default form submission
+
         const order_detail_id = this.getAttribute('data-order-detail-id');
 
         fetch("{% url 'delete_order_detail' %}", {
