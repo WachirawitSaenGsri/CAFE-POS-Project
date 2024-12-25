@@ -3,25 +3,13 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import *
 
-class PasswordResetRequestForm(forms.Form):
-    email = forms.EmailField(label="Enter your email address")
 
-class PasswordResetForm(forms.Form):
-    new_password = forms.CharField(widget=forms.PasswordInput, label="New Password")
-    confirm_password = forms.CharField(widget=forms.PasswordInput, label="Confirm Password")
-
-    def clean(self):
-        cleaned_data = super().clean()
-        new_password = cleaned_data.get("new_password")
-        confirm_password = cleaned_data.get("confirm_password")
-
-        if new_password != confirm_password:
-            raise forms.ValidationError("Passwords do not match")
-        return cleaned_data
 class CustomerInfoForm(forms.Form):
     customer_name = forms.CharField(max_length=100, label='Customer Name')
     customer_phone = forms.CharField(max_length=15, label='Customer Phone')
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 class OptionForm(forms.ModelForm):
     class Meta:
@@ -54,3 +42,10 @@ class PaymentForm(forms.Form):
         label="Payment Method",
         widget=forms.RadioSelect
     )
+    amount_paid = forms.DecimalField(
+        max_digits=10, decimal_places=2,
+        label="Amount Paid",
+        min_value=0,
+        required=True
+    )
+

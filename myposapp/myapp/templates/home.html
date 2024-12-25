@@ -1,3 +1,4 @@
+{#home.html#}
 {% load static tailwind_tags %}
 <!DOCTYPE html>
 <html lang="en">
@@ -77,87 +78,90 @@
                 {% endfor %}
             </div>
         </div>
-<!-- Cart Information -->
-<div class="flex flex-col bg-white p-8 rounded-lg shadow-lg w-full md:w-1/2 ml-4">
-    <div class="flex justify-between items-center mb-6">
-        {% if order %}
-        <div>
-            <p class="text-xl font-semibold text-black">Order#{{ order.id }}</p>
-            <p class="text-sm text-gray-500">Total Items: {{ total_quantity }}</p>
+
+        <!-- Cart Information -->
+        <div class="flex flex-col bg-white p-8 rounded-lg shadow-lg w-full md:w-1/2 ml-4">
+            <div class="flex justify-between items-center mb-6">
+                {% if order %}
+                    <div>
+                        <p class="text-xl font-semibold text-black">Order#{{ order.id }}</p>
+                        <p class="text-sm text-gray-500">จำนวนชิ้นทั้งหมด: {{ total_quantity }}</p>
+                    </div>
+                {% endif %}
+                <p class="text-xl font-semibold text-gray-600"> ยอดทั้งหมด: {{ total_price }} </p>
+            </div>
+
+            <!-- Customer Information Form -->
+            <div class="mb-6">
+<form method="POST" action="{% if order %}{% url 'paynow' order.id %}{% else %}#{% endif %}">
+    {% csrf_token %}
+    <div class="flex gap-4 mb-4">
+        <div class="w-full">
+            <label for="customer_name" class="block text-sm font-medium text-gray-700">ชื่อลูกค้า</label>
+            <input type="text" id="customer_name" name="customer_name" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" value="{{ order.customer_name }}" required>
         </div>
-        {% endif %}
-        <p class="text-xl font-semibold text-gray-600"> Total: {{ total_price }} </p>
+    
+        <div class="w-full">
+            <label for="customer_phone" class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์ลูกค้า</label>
+            <input type="text" id="customer_phone" name="customer_phone" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" value="{{ order.customer_phone }}" required>
+        </div>
     </div>
 
-    <div class="mb-6">
-        <form method="POST" action="{% url 'PayNow' %}">
-            {% csrf_token %}
-            <div class="flex gap-4 mb-4">
-                <div class="w-full">
-                    <label for="customer_name" class="block text-sm font-medium text-gray-700">Name</label>
-                    <input type="text" id="customer_name" name="customer_name" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" required>
-                </div>
+                    <div class="flex-1 overflow-auto mb-6">
+                        {% if order and order.order_details.all %}
+                            {% for detail in order.order_details.all %}
+                                <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-16 h-16 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
+                                            {% if detail.product.img_product %}
+                                                <img src="{{ detail.product.img_product.url }}" alt="{{ detail.product.product_name }}" class="w-full h-full object-cover">
+                                            {% else %}
+                                                <span class="text-gray-400">No Image</span>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <h3 class="text-sm font-medium text-gray-700">{{ detail.product.product_name }}</h3>
+                                            <p class="text-xs text-gray-500">
+                                                {% if detail.options.all %}
+                                                    {% for option in detail.options.all %}
+                                                        {{ option.name }} (+{{ option.price }} ฿)<br>
+                                                    {% endfor %}
+                                                {% else %}
+                                                {% endif %}
+                                            </p> 
+                                        </div>
+                                    </div>
 
-                <div class="w-full">
-                    <label for="customer_phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                    <input type="text" id="customer_phone" name="customer_phone" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" required>
-                </div>
-            </div>
-
-            <div class="flex-1 overflow-auto mb-6">
-                {% if order and order.order_details.all %}
-                     {% for detail in order.order_details.all %}
-                    <div class="flex items-center justify-between p-4 border-b border-gray-200">
-                        <div class="flex items-center gap-4">
-                            <div class="w-16 h-16 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
-                                {% if detail.product.img_product %}
-                                    <img src="{{ detail.product.img_product.url }}" alt="{{ detail.product.product_name }}" class="w-full h-full object-cover">
-                                {% else %}
-                                    <span class="text-gray-400">No Image</span>
-                                {% endif %}
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-medium text-gray-700">{{ detail.product.product_name }}</h3>
-                                <p class="text-xs text-gray-500">
-                                    {% if detail.options.all %}
-                                        {% for option in detail.options.all %}
-                                            {{ option.name }} (+{{ option.price }} ฿)<br>
-                                        {% endfor %}
-                                    {% else %}
-                                    {% endif %}
-                                </p> 
-                            </div>
-                        </div>
-                    
-                        <div class="flex items-center gap-4">
-                            <div class="flex items-center gap-2">
-                                <button class="update-quantity bg-gray-300 text-gray-700 rounded px-3 py-1"
-                                        data-action="decrement" data-order-detail-id="{{ detail.id }}">-</button>
-                                <span id="quantity-{{ detail.id }}" class="text-sm font-semibold text-gray-700">{{ detail.quantity }}</span>
-                                <button class="update-quantity bg-gray-300 text-gray-700 rounded px-3 py-1"
-                                        data-action="increment" data-order-detail-id="{{ detail.id }}">+</button>
-                            </div>
-                            <div class="text-sm font-semibold text-gray-700 ml-4">{{ detail.price }} ฿</div>
-                            <button class="delete-order-detail text-red-500 ml-4"
-                                    data-order-detail-id="{{ detail.id }}">🗑️</button>
-                        </div>
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex items-center gap-2">
+                                            <button class="update-quantity bg-gray-300 text-gray-700 rounded px-3 py-1"
+                                                    data-action="decrement" data-order-detail-id="{{ detail.id }}">-</button>
+                                            <span id="quantity-{{ detail.id }}" class="text-sm font-semibold text-gray-700">{{ detail.quantity }}</span>
+                                            <button class="update-quantity bg-gray-300 text-gray-700 rounded px-3 py-1"
+                                                    data-action="increment" data-order-detail-id="{{ detail.id }}">+</button>
+                                        </div>
+                                        <div class="text-sm font-semibold text-gray-700 ml-4">{{ detail.price }} ฿</div>
+                                        <button class="delete-order-detail text-red-500 ml-4"
+                                                data-order-detail-id="{{ detail.id }}">🗑️</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <img class="mx-auto w-32 h-32 object-contain" src="{% static 'no-task.png' %}" />
+                            <p class="text-center text-gray-500">คำสั่งซื้อว่างเปล่า</p>
+                        {% endif %}
                     </div>
-                    {% endfor %}
-                {% else %}
-                    <img class="mx-auto w-32 h-32 object-contain" src="{% static 'no-task.png' %}" />
-                    <p class="text-center text-gray-500">Order is empty.</p>
-                {% endif %}
-            </div>
 
-            <div class="mt-auto flex justify-center">
-                <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-md">
-                    Pay Now
-                </button>
+                    <div class="mt-auto flex justify-center">
+                        <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-md">
+                            ชำระเงิน
+                        </button>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
     </div>
 </div>
-</div> 
 
 <div class="container mx-auto my-4">
     <div class="flex justify-center">

@@ -8,21 +8,10 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
 import json
-from django.contrib.auth.hashers import make_password, check_password
-from django.views.decorators.csrf import csrf_protect
 from django.core.paginator import Paginator
 from .forms import *
 from django.db import transaction
-from myapp.models import Product, Order, OrderDetail, Option, Category, Payment
-from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.template.loader import render_to_string
-from django.contrib.auth import get_user_model
-from django.contrib.auth.tokens import default_token_generator
-from django.http import HttpResponse
-from .forms import PasswordResetRequestForm, PasswordResetForm
-from django.urls import reverse
+from myapp.models import *
 
 def user_login(request):
     if request.method == 'POST':
@@ -93,64 +82,146 @@ def register(request):
 def Menu(request):
     products = Product.objects.all()  # ดึงข้อมูลสินค้าทั้งหมดจากฐานข้อมูล
     return render(request, 'home.html', {'products': products})
+
+
 @login_required
 def Order1(request):
-    return render(request, 'Order.html')
+    # Fetch all orders
+    orders = Order.objects.filter(payment__payment_status='Success')
 
+    # For each order, calculate the total quantity of items
+    for order in orders:
+        total_quantity = sum(detail.quantity for detail in order.order_details.all())
+        order.total_quantity = total_quantity  # Add total_quantity as a dynamic attribute
+
+    return render(request, 'Order.html', {'orders': orders})
+
+@login_required
+def get_order_details(request, order_id):
+    # ดึงข้อมูลคำสั่งซื้อจากฐานข้อมูลตาม order_id
+    order = get_object_or_404(Order, id=order_id)
+
+    # เตรียมข้อมูลคำสั่งซื้อที่ต้องการส่งกลับไปในรูปแบบ JSON
+    order_details = [
+        {
+            'product_name': detail.product.product_name,
+            'quantity': detail.quantity,
+            'price': str(detail.price),
+            'total_item_price': str(detail.quantity * detail.price),
+            'options': [
+                {'name': option.name, 'price': str(option.price)} for option in detail.options.all()
+            ]
+        }
+        for detail in order.order_details.all()
+    ]
+
+    # ส่งข้อมูลคำสั่งซื้อและรายละเอียดกลับไป
+    data = {
+        'order_id': order.id,
+        'customer_name': order.customer_name,
+        'customer_phone': order.customer_phone,
+        'total_price': str(order.total_price),
+        'status': "Paid" if order.payment.payment_status == "Success" else "Pending",
+        'order_details': order_details,
+    }
+
+    return JsonResponse(data)
+
+@login_required
+@csrf_exempt
+def PayNow(request, order_id):
+    try:
+        # ดึงข้อมูลคำสั่งซื้อจากฐานข้อมูลตาม order_id
+        order = get_object_or_404(Order, id=order_id)
+
+        if request.method == 'POST':
+            # สร้างฟอร์มจากข้อมูลที่รับมาใน POST
+            form = CustomerInfoForm(request.POST)
+
+            if form.is_valid():
+                # รับข้อมูลจากฟอร์ม
+                customer_name = form.cleaned_data['customer_name']
+                customer_phone = form.cleaned_data['customer_phone']
+
+                # อัปเดตข้อมูลลูกค้าในคำสั่งซื้อ
+                order.customer_name = customer_name
+                order.customer_phone = customer_phone
+                order.save()
+
+                # หลังจากบันทึกข้อมูลลูกค้าแล้ว ให้ไปยังหน้า payment
+                return redirect('payment', order_id=order.id)
+
+            else:
+                messages.error(request, 'กรุณากรอกข้อมูลให้ครบถ้วน')
+
+        else:
+            # หากไม่ใช่ POST ให้แสดงฟอร์มที่มีข้อมูลลูกค้าจากคำสั่งซื้อ
+            form = CustomerInfoForm(initial={
+                'customer_name': order.customer_name,
+                'customer_phone': order.customer_phone,
+            })
+
+    except Exception as e:
+        print(f"Error occurred while processing the payment: {e}")
+        messages.error(request, 'เกิดข้อผิดพลาดในการชำระเงิน กรุณาลองใหม่อีกครั้ง')
+        return redirect('home')
+
+    return render(request, 'Payment.html', {
+        'form': form,
+        'order': order,
+    })
 
 @login_required
 @transaction.atomic
 def PayMent(request, order_id):
+    # ดึงข้อมูลคำสั่งซื้อจากฐานข้อมูลตาม order_id
     order = get_object_or_404(Order, id=order_id)
 
-    # Initialize total order price
-    total_order_price = 0
-    order_details = []
-
-    # Calculate total item price and total order price
-    for detail in order.order_details.all():
-        total_item_price = detail.quantity * detail.price
-        order_details.append({
-            'product_name': detail.product.product_name,
+    # คำนวณราคา total ของคำสั่งซื้อและดึงข้อมูล order details
+    total_order_price = sum([detail.quantity * detail.price for detail in order.order_details.all()])
+    order_details = [
+        {
+            'product_name': detail.product.product_name if detail.product else 'Product not found',
             'quantity': detail.quantity,
             'price': detail.price,
-            'total_item_price': total_item_price,
-            'options': detail.options,  # Include options in the order details
-        })
-        total_order_price += total_item_price
+            'total_item_price': detail.quantity * detail.price,
+            'options': detail.options,
+        }
+        for detail in order.order_details.all()
+    ]
 
+    # Handle the form submission (payment)
     if request.method == 'POST':
-        form = PaymentForm(request.POST)
-        if form.is_valid():
-            payment_method = form.cleaned_data['payment_method']
-            amount_paid = form.cleaned_data['amount_paid']
+        payment_method = request.POST.get('payment_method', None)
+        amount_paid = float(request.POST.get('amount_paid', 0))  # รับค่าจากผู้ใช้และแปลงเป็น float
 
-            # Simulate payment logic here
-            payment = Payment.objects.create(
-                order=order,
-                amount=amount_paid,
-                payment_method=payment_method,
-                payment_status="Success"  # Change to dynamic status if integrating payment gateway
-            )
+        # ตรวจสอบว่า form ถูกต้องหรือไม่
+        if not payment_method or not amount_paid:
+            messages.error(request, 'กรุณากรอกข้อมูลการชำระเงินให้ครบถ้วน')
+            return render(request, 'Payment.html', {
+                'order': order,
+                'order_details': order_details,
+                'total_order_price': total_order_price,
+            })
 
-            # Calculate change
-            change = amount_paid - total_order_price
-            if change < 0:
-                messages.error(request, f'Insufficient amount. You still owe {-change} ฿')
-            else:
-                messages.success(request, f'Payment completed successfully! Change: {change} ฿')
+        # คำนวณเงินทอน
+        change = amount_paid - float(total_order_price)  # แปลง total_order_price เป็น float ก่อน
 
-            return redirect('History_Order')  # Redirect to order history or confirmation page
+        # อัปเดตสถานะการชำระเงิน
+        Payment.objects.create(
+            order=order,
+            amount=total_order_price,
+            payment_method=payment_method,
+            payment_status='Success' if change >= 0 else 'Failed',
+        )
 
-    else:
-        form = PaymentForm()
+        # ส่งผลลัพธ์กลับไปยัง History_Order
+        return redirect('order')
 
-    # Pass the calculated values to the template
     return render(request, 'Payment.html', {
         'order': order,
-        'form': form,
-        'total_order_price': total_order_price,  # Pass the total order price
-        'order_details': order_details,  # Pass the detailed order data
+        'order_details': order_details,
+        'total_order_price': total_order_price,
     })
 
 @login_required
@@ -218,7 +289,7 @@ def home(request):
     page_obj = paginator.get_page(page_number)
 
     # ดึงคำสั่งซื้อที่ยังไม่สมบูรณ์ล่าสุด
-    order = Order.objects.filter(customer_name='unknown').last()
+    order = Order.objects.filter(customer_name='').last()
 
     total_price = 0
     total_quantity = 0
@@ -234,16 +305,18 @@ def home(request):
         # ใช้ .all() เพื่อดึงข้อมูล options ที่เชื่อมโยงกับ product
         product.options_list = [option.name for option in product.options.all()] if product.options.exists() else []
 
+    # Check if order exists and pass it to the template
     return render(request, 'home.html', {
         'page_obj': page_obj,
         'query': query,
         'category': category,
         'categories': categories,  # ส่งหมวดหมู่ทั้งหมด
-        'order': order,
+        'order': order if order else None,  # Ensure order is not None
         'total_price': total_price,
         'total_quantity': total_quantity,
         'form': form,  # ส่งฟอร์มข้อมูลลูกค้า
     })
+
 
 # Add product to order
 @csrf_exempt
@@ -261,8 +334,8 @@ def add_to_order(request):
 
             # Retrieve or create an order for the logged-in user
             order, created = Order.objects.get_or_create(
-                customer_name='unknown',  # Static name or use request.user.username if needed
-                customer_phone='0999999999',  # Static phone number or use a profile field if needed
+                customer_name='',  # Static name or use request.user.username if needed
+                customer_phone='',  # Static phone number or use a profile field if needed
                 defaults={'total_price': 0}
             )
 
@@ -293,7 +366,7 @@ def add_to_order(request):
                 # Create a new OrderDetail if no matching item is found
                 order_detail = OrderDetail.objects.create(
                     order=order,
-                    product=product,
+                    product=product,  # Ensure that the product is being properly assigned
                     quantity=quantity,
                     price=total_price
                 )
@@ -357,49 +430,6 @@ def delete_order_detail(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'invalid method'})
-
-
-@login_required
-@transaction.atomic
-def PayNow(request):
-    if request.method == 'POST':
-        form = CustomerInfoForm(request.POST)
-
-        # Print form data for debugging
-        print("Form Data:", request.POST)
-
-        if form.is_valid():
-            customer_name = form.cleaned_data['customer_name']
-            customer_phone = form.cleaned_data['customer_phone']
-
-            # Get the latest order or create a new one
-            order = Order.objects.filter(customer_name='unknown').last()
-            if order:
-                # Update the order with customer info
-                order.customer_name = customer_name
-                order.customer_phone = customer_phone
-                order.save()
-
-                # Get the order details and total price
-                order_details = OrderDetail.objects.filter(order=order)
-                total_order_price = sum(detail.price for detail in order_details)
-
-                # Pass order details and total price to the payment page
-                return render(request, 'payment.html', {
-                    'order': order,
-                    'order_details': order_details,
-                    'total_order_price': total_order_price,
-                    'form': PaymentForm()  # Only render the payment form if the customer info is valid
-                })
-            else:
-                messages.error(request, 'No active order found. Please try again.')
-        else:
-            # Log the form errors to understand what went wrong
-            print("Form Errors:", form.errors)
-            messages.error(request, 'Invalid form data. Please check and try again.')
-
-    return redirect('home')
-
 
 @login_required
 def add_product(request):

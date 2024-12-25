@@ -44,8 +44,8 @@ class Option(models.Model):
         return f"{self.name} (+{self.price} ฿)"
 
 class Order(models.Model):
-    customer_name = models.CharField(max_length=100)
-    customer_phone = models.CharField(max_length=20)
+    customer_name = models.CharField(max_length=100,null=True,blank=True)
+    customer_phone = models.CharField(max_length=20,null=True,blank=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
