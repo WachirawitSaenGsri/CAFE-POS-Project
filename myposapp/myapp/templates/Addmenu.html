@@ -1,4 +1,3 @@
-{#Addmenu.html#}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -169,55 +168,84 @@
                         ยกเลิก
                     </button>
                     <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition duration-300">
-                        เพิ่มหมวดหมูใหม่
+                        เพิ่มหมวดหมู่ใหม่
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script>
-        // Open/Close Add Product Modal
-        const openModalBtn = document.getElementById('openAddProductModal');
-        const closeModalBtn = document.getElementById('closeAddProductModal');
-        const addProductModal = document.getElementById('addProductModal');
-        
-        openModalBtn.addEventListener('click', () => {
-            addProductModal.classList.remove('hidden');
-        });
+    <!-- Popup Modal for Success/Error -->
+    <div id="popupModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 hidden">
+        <div class="flex justify-center items-center min-h-screen">
+            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+                <div id="popupMessage" class="text-center">
+                    <p class="text-xl font-semibold text-gray-700">สำเร็จ</p>
+                    <p id="popupText" class="text-gray-600 mt-4">การดำเนินการสำเร็จ</p>
+                </div>
+                <div class="mt-4 text-center">
+                    <button id="closePopup" class="bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600">ปิด</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        closeModalBtn.addEventListener('click', () => {
+<script>
+    // Open/Close Add Product Modal
+    const openModalBtn = document.getElementById('openAddProductModal');
+    const closeModalBtn = document.getElementById('closeAddProductModal');
+    const addProductModal = document.getElementById('addProductModal');
+    
+    openModalBtn.addEventListener('click', () => {
+        addProductModal.classList.remove('hidden');
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+        addProductModal.classList.add('hidden');
+    });
+
+    addProductModal.addEventListener('click', (e) => {
+        if (e.target === addProductModal) {
             addProductModal.classList.add('hidden');
+        }
+    });
+
+    // Dynamically add options
+    document.getElementById('add-option-btn').addEventListener('click', () => {
+        const optionsList = document.getElementById('options-list');
+        const optionField = document.createElement('div');
+        optionField.className = 'flex gap-4 mt-2';
+
+        optionField.innerHTML = `
+            <input type="text" name="option_name[]" placeholder="Option Name" class="border rounded p-2 flex-1 option-name" required>
+            <input type="number" name="option_price[]" placeholder="Price" class="border rounded p-2 option-price" step="0.01" min="0" required>
+            <button type="button" class="remove-option-btn text-red-500">Remove</button>
+        `;
+
+        optionsList.appendChild(optionField);
+
+        // Remove option field
+        optionField.querySelector('.remove-option-btn').addEventListener('click', () => {
+            optionsList.removeChild(optionField);
         });
+    });
 
-        addProductModal.addEventListener('click', (e) => {
-            if (e.target === addProductModal) {
-                addProductModal.classList.add('hidden');
-            }
-        });
+    // Show popup message
+    function showPopupMessage(title, message) {
+        document.getElementById('popupMessage').innerHTML = `
+            <p class="text-xl font-semibold text-gray-700">${title}</p>
+            <p class="text-gray-600 mt-4">${message}</p>
+        `;
+        document.getElementById('popupModal').classList.remove('hidden');
+    }
 
-        // Dynamically add options
-        document.getElementById('add-option-btn').addEventListener('click', () => {
-            const optionsList = document.getElementById('options-list');
-            const optionField = document.createElement('div');
-            optionField.className = 'flex gap-4 mt-2';
+    document.getElementById('closePopup').addEventListener('click', () => {
+        document.getElementById('popupModal').classList.add('hidden');
+        window.location.reload();  // รีโหลดหน้าเว็บหลังจากปิด popup
+    });
 
-            optionField.innerHTML = `
-                <input type="text" name="option_name[]" placeholder="Option Name" class="border rounded p-2 flex-1 option-name" required>
-                <input type="number" name="option_price[]" placeholder="Price" class="border rounded p-2 option-price" step="0.01" min="0" required>
-                <button type="button" class="remove-option-btn text-red-500">Remove</button>
-            `;
-
-            optionsList.appendChild(optionField);
-
-            // Remove option field
-            optionField.querySelector('.remove-option-btn').addEventListener('click', () => {
-                optionsList.removeChild(optionField);
-            });
-        });
-
-        // Handle form submission for the product
-        document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+    // Handle form submission for the product
+    document.getElementById('addProductForm').addEventListener('submit', async (e) => {
         e.preventDefault();  // Prevent default form submission
      
         const formData = new FormData(e.target);
@@ -236,9 +264,6 @@
         // Convert options to JSON and append it to the form data
         formData.append('options', JSON.stringify(options));
     
-        // Debug: Log the form data
-        console.log("Form Data: ", [...formData]);
-    
         const response = await fetch("{% url 'add_product' %}", {
             method: 'POST',
             body: formData,
@@ -249,64 +274,63 @@
     
         const result = await response.json();
         if (result.status === 'success') {
-            alert('Product added successfully!');
-            window.location.reload();  // Reload page to show the new product
+            showPopupMessage('Product added successfully!', 'เพิ่มโปรดุกส์สำเร็จแล้ว');
         } else {
-            alert('Failed to add product: ' + result.message);
+            showPopupMessage('ไม่สามารถเพิ่มโปรดุกส์ได้', result.message);
         }
     });
 
-        // Handle Add Category Modal
-        const openCategoryModalBtn = document.getElementById('openAddCategoryModal');
-        const closeCategoryModalBtn = document.getElementById('closeAddCategoryModal');
-        const addCategoryModal = document.getElementById('addCategoryModal');
-        
-        openCategoryModalBtn.addEventListener('click', () => {
-            addCategoryModal.classList.remove('hidden');
-        });
+    // Handle Add Category Modal
+    const openCategoryModalBtn = document.getElementById('openAddCategoryModal');
+    const closeCategoryModalBtn = document.getElementById('closeAddCategoryModal');
+    const addCategoryModal = document.getElementById('addCategoryModal');
+    
+    openCategoryModalBtn.addEventListener('click', () => {
+        addCategoryModal.classList.remove('hidden');
+    });
 
-        closeCategoryModalBtn.addEventListener('click', () => {
+    closeCategoryModalBtn.addEventListener('click', () => {
+        addCategoryModal.classList.add('hidden');
+    });
+
+    addCategoryModal.addEventListener('click', (e) => {
+        if (e.target === addCategoryModal) {
             addCategoryModal.classList.add('hidden');
+        }
+    });
+
+    document.getElementById('addCategoryForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const categoryName = document.getElementById('category_name').value;
+
+        const response = await fetch("{% url 'add_category' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({ category_name: categoryName })
         });
 
-        addCategoryModal.addEventListener('click', (e) => {
-            if (e.target === addCategoryModal) {
-                addCategoryModal.classList.add('hidden');
-            }
-        });
+        const result = await response.json();
 
-        document.getElementById('addCategoryForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        if (result.status === 'success') {
+            showPopupMessage('Category added successfully!', 'เพิ่มหมวดหมู่สำเร็จแล้ว');
+            const newCategory = result.category_name;
+            // Update the dropdown in the Add Product modal
+            const categorySelect = document.getElementById('category');
+            const newOption = document.createElement('option');
+            newOption.value = newCategory;
+            newOption.textContent = newCategory;
+            categorySelect.appendChild(newOption);
 
-            const categoryName = document.getElementById('category_name').value;
-
-            const response = await fetch("{% url 'add_category' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}',
-                },
-                body: JSON.stringify({ category_name: categoryName })
-            });
-
-            const result = await response.json();
-
-            if (result.status === 'success') {
-                alert('Category added successfully!');
-                const newCategory = result.category_name;
-                // Update the dropdown in the Add Product modal
-                const categorySelect = document.getElementById('category');
-                const newOption = document.createElement('option');
-                newOption.value = newCategory;
-                newOption.textContent = newCategory;
-                categorySelect.appendChild(newOption);
-
-                document.getElementById('category_name').value = '';
-                addCategoryModal.classList.add('hidden');
-            } else {
-                alert(result.message || 'Failed to add category');
-            }
-        });
-    </script>
+            document.getElementById('category_name').value = '';
+            addCategoryModal.classList.add('hidden');
+        } else {
+            showPopupMessage('ไม่สามารถเพิ่มหมวดหมู่', result.message || 'เกิดข้อผิดพลาด');
+        }
+    });
+</script>
 </body>
 </html>

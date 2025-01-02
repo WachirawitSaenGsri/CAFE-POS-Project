@@ -345,7 +345,7 @@ def add_to_order(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         product_id = data.get('product_id')
-        options = data.get('options', [])  # Array of selected options
+        options = data.get('options', [])  # Array ของตัวเลือกที่เลือก
         quantity = data.get('quantity', 1)
 
         try:
@@ -366,24 +366,23 @@ def add_to_order(request):
             # Calculate the total price with options
             total_price = (product.price + total_option_price) * quantity
 
-            # Check if the product with selected options already exists in the order
-            order_detail = OrderDetail.objects.filter(
-                order=order,
-                product=product
-            ).filter(options__in=selected_options).distinct()
-
-            if order_detail.exists():
-                # If product already exists in the order with the same options, update it
-                order_detail = order_detail.first()  # Get the first matching order detail
-                order_detail.quantity += quantity
-                order_detail.price = order_detail.quantity * (product.price + total_option_price)
-                order_detail.save()
-
-                # Set the options for this order item
-                order_detail.options.set(selected_options)
-                order_detail.save()
+            # Handle the case where no options are selected (treat it as a single product)
+            if not selected_options:
+                order_detail = OrderDetail.objects.filter(
+                    order=order,
+                    product=product,
+                    options=None  # No options, just the product itself
+                )
             else:
-                # Create a new OrderDetail if no matching item is found
+                # Handle the case where options are selected (treat it as a unique combination)
+                order_detail = OrderDetail.objects.filter(
+                    order=order,
+                    product=product,
+                    options__in=selected_options
+                )
+
+            # If no matching order detail exists (with the same options), create a new one
+            if not order_detail.exists():
                 order_detail = OrderDetail.objects.create(
                     order=order,
                     product=product,  # Ensure that the product is being properly assigned
@@ -391,6 +390,12 @@ def add_to_order(request):
                     price=total_price
                 )
                 order_detail.options.set(selected_options)  # Set the options for this order item
+                order_detail.save()
+            else:
+                # If the order detail with the same options exists, just update the quantity and price
+                order_detail = order_detail.first()
+                order_detail.quantity += quantity
+                order_detail.price = order_detail.quantity * (product.price + total_option_price)
                 order_detail.save()
 
             # Update the total price of the order

@@ -97,13 +97,12 @@
     {% csrf_token %}
     <div class="flex gap-4 mb-4">
         <div class="w-full">
-            <label for="customer_name" class="block text-sm font-medium text-gray-700">ชื่อลูกค้า</label>
-            <input type="text" id="customer_name" name="customer_name" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" value="{{ order.customer_name }}" required>
-        </div>
-    
-        <div class="w-full">
             <label for="customer_phone" class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์ลูกค้า</label>
             <input type="text" id="customer_phone" name="customer_phone" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" value="{{ order.customer_phone }}" required>
+        </div>      
+        <div class="w-full">
+            <label for="customer_name" class="block text-sm font-medium text-gray-700">ชื่อลูกค้า</label>
+            <input type="text" id="customer_name" name="customer_name" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" value="{{ order.customer_name }}" required>
         </div>
     </div>
 
@@ -162,6 +161,16 @@
         </div>
     </div>
 </div>
+<div id="modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 hidden">
+    <div class="flex justify-center items-center min-h-screen">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+            <div id="modal-message" class="text-center">
+                <p class="text-xl font-semibold text-gray-700">เพิ่มสินค้าเพื่อสั่งซื้อเรียบร้อยแล้ว!</p>
+                <p id="modal-text" class="text-gray-600 mt-4">เพิ่มโปรดักส์ลงในคำสั่งซื้อเรียบร้อยแล้ว</p>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="container mx-auto my-4">
     <div class="flex justify-center">
@@ -197,62 +206,73 @@ document.querySelectorAll('.option-btn').forEach(button => {
     });
 });
 
-// Handle Add to Order button click
 document.querySelectorAll('.add-to-order-btn').forEach(button => {
     button.addEventListener('click', function(event) {
-        event.preventDefault();  // Prevent default form submission
+        event.preventDefault();  // ป้องกันไม่ให้ทำการส่งฟอร์มโดยตรง
 
-        // Disable the button to prevent multiple clicks
+        // ปิดการคลิกปุ่มซ้ำ
         this.disabled = true;
         this.innerText = 'Adding...';
 
-        const productId = this.getAttribute('data-product-id');  // Get the product ID
-        const price = this.getAttribute('data-price');  // Get the base price of the product
+        const productId = this.getAttribute('data-product-id');  // รับค่า product ID
+        const price = this.getAttribute('data-price');  // รับราคาพื้นฐานของสินค้าที่เลือก
 
-        // Initialize an empty array for selected options
+        // สร้าง array สำหรับเก็บตัวเลือกที่เลือก
         const selectedOptions = [];
 
-        // Find the selected options for this product
+        // ค้นหาปุ่มตัวเลือกที่ถูกเลือก
         const optionButtons = document.querySelectorAll(`#options-${productId} .option-btn.bg-yellow-500`);
         optionButtons.forEach(optionBtn => {
-            selectedOptions.push(optionBtn.getAttribute('data-option'));  // Push the option to the array
+            selectedOptions.push(optionBtn.getAttribute('data-option'));  // เพิ่มตัวเลือกที่เลือกลงใน array
         });
 
-        // Send the selected product and options to the server using fetch
+        // ส่งข้อมูลสินค้าและตัวเลือกไปยัง server ผ่าน fetch
         fetch('/add_to_order/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')  // Ensure CSRF token is sent
+                'X-CSRFToken': getCookie('csrftoken')  // ส่ง csrf token ไปด้วย
             },
             body: JSON.stringify({
                 product_id: productId,
-                options: selectedOptions,  // Array of selected options
-                quantity: 1  // Set quantity to 1 (or get from UI if you want)
+                options: selectedOptions,  // ตัวเลือกที่เลือก
+                quantity: 1  // จำนวนสินค้าตั้งต้นเป็น 1 (หรือสามารถปรับจาก UI ได้)
             })
         })
-        .then(response => response.json())  // Parse the JSON response
+        .then(response => response.json())  // แปลงผลลัพธ์จาก JSON
         .then(data => {
             if (data.status === 'success') {
-                alert('Product added to order successfully!');
-                window.location.reload();  // Reload the page to update the cart
+                showModal('Product added to order successfully!', 'สินค้าถูกเพิ่มในคำสั่งซื้อเรียบร้อยแล้ว.');
+                // รีโหลดหน้าเว็บเพื่อให้เห็นข้อมูลที่อัพเดตในคำสั่งซื้อ
+                setTimeout(function() {
+                    window.location.reload(); // รีโหลดหน้า
+                }, 300);
             } else {
-                alert(data.message || 'Error occurred while adding product');
+                showModal('Error', 'เกิดข้อผิดพลาดในการเพิ่มสินค้าลงในคำสั่งซื้อ');
             }
 
             this.disabled = false;
-            this.innerText = 'Add to Order';  // Reset the button text
+            this.innerText = 'Add to Order';  // รีเซ็ตข้อความปุ่ม
         })
         .catch(error => {
             console.log(error);
-            alert('An error occurred while adding the product to the order');
+            showModal('Error', 'เกิดข้อผิดพลาดในการเพิ่มสินค้าลงในคำสั่งซื้อ');
             this.disabled = false;
-            this.innerText = 'Add to Order';  // Reset the button text on error
+            this.innerText = 'Add to Order';  // รีเซ็ตข้อความปุ่มในกรณีที่เกิดข้อผิดพลาด
         });
     });
 });
 
-// Utility function to get CSRF token from cookies
+// ฟังก์ชั่นสำหรับแสดง Modal
+function showModal(title, message) {
+    document.getElementById('modal-message').innerHTML = `
+        <p class="text-xl font-semibold text-gray-700">${title}</p>
+        <p class="text-gray-600 mt-4">${message}</p>
+    `;
+    document.getElementById('modal').classList.remove('hidden');  // แสดง Modal
+}
+
+// ฟังก์ชั่นสำหรับรับ CSRF token จาก cookies
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {

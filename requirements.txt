@@ -10,3 +10,4 @@ mysql
 requests
 django-tailwind
 django-browser-reload
+django-dbml
