@@ -3,10 +3,20 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import *
 
-
+class CustomerMemberForm(forms.ModelForm):
+    class Meta:
+        model = customerMember
+        fields = ['name', 'email', 'phone', 'points']  # ฟิลด์ที่ต้องการให้กรอก
+        widgets = {
+            'points': forms.NumberInput(attrs={'min': 0}),
+        }
+class PointsConfigForm(forms.ModelForm):
+    class Meta:
+        model = PointsConfig
+        fields = ['points_per_baht']
 class CustomerInfoForm(forms.Form):
-    customer_name = forms.CharField(max_length=100, label='Customer Name')
-    customer_phone = forms.CharField(max_length=15, label='Customer Phone')
+    customer_name = forms.CharField(max_length=100, label='Customer Name', required=False)
+    customer_phone = forms.CharField(max_length=15, label='Customer Phone', required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

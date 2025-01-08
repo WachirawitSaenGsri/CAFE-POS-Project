@@ -79,88 +79,103 @@
             </div>
         </div>
 
-        <!-- Cart Information -->
-        <div class="flex flex-col bg-white p-8 rounded-lg shadow-lg w-full md:w-1/2 ml-4">
-            <div class="flex justify-between items-center mb-6">
-                {% if order %}
-                    <div>
-                        <p class="text-xl font-semibold text-black">Order#{{ order.id }}</p>
-                        <p class="text-sm text-gray-500">จำนวนชิ้นทั้งหมด: {{ total_quantity }}</p>
-                    </div>
-                {% endif %}
-                <p class="text-xl font-semibold text-gray-600"> ยอดทั้งหมด: {{ total_price }} </p>
+<!-- Cart Information -->
+<div class="flex flex-col bg-white p-8 rounded-lg shadow-lg w-full md:w-1/2 ml-4">
+    <div class="flex justify-between items-center mb-6">
+        {% if order %}
+            <div>
+                <p class="text-xl font-semibold text-black">Order#{{ order.id }}</p>
+                <p class="text-sm text-gray-500">จำนวนชิ้นทั้งหมด: {{ total_quantity }}</p>
             </div>
-
-            <!-- Customer Information Form -->
-            <div class="mb-6">
-<form method="POST" action="{% if order %}{% url 'paynow' order.id %}{% else %}#{% endif %}">
-    {% csrf_token %}
-    <div class="flex gap-4 mb-4">
-        <div class="w-full">
-            <label for="customer_phone" class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์ลูกค้า</label>
-            <input type="text" id="customer_phone" name="customer_phone" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" value="{{ order.customer_phone }}" required>
-        </div>      
-        <div class="w-full">
-            <label for="customer_name" class="block text-sm font-medium text-gray-700">ชื่อลูกค้า</label>
-            <input type="text" id="customer_name" name="customer_name" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" value="{{ order.customer_name }}" required>
-        </div>
+        {% endif %}
+        <p class="text-xl font-semibold text-gray-600"> ยอดทั้งหมด: {{ total_price }} </p>
     </div>
 
-                    <div class="flex-1 overflow-auto mb-6">
-                        {% if order and order.order_details.all %}
-                            {% for detail in order.order_details.all %}
-                                <div class="flex items-center justify-between p-4 border-b border-gray-200">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-16 h-16 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
-                                            {% if detail.product.img_product %}
-                                                <img src="{{ detail.product.img_product.url }}" alt="{{ detail.product.product_name }}" class="w-full h-full object-cover">
-                                            {% else %}
-                                                <span class="text-gray-400">No Image</span>
-                                            {% endif %}
-                                        </div>
-                                        <div>
-                                            <h3 class="text-sm font-medium text-gray-700">{{ detail.product.product_name }}</h3>
-                                            <p class="text-xs text-gray-500">
-                                                {% if detail.options.all %}
-                                                    {% for option in detail.options.all %}
-                                                        {{ option.name }} (+{{ option.price }} ฿)<br>
-                                                    {% endfor %}
-                                                {% else %}
-                                                {% endif %}
-                                            </p> 
-                                        </div>
-                                    </div>
+<!-- Customer Search Box -->
+<div class="mb-4 flex items-center gap-4 relative">
+    <input type="text" id="customer-search" placeholder="ค้นหาสมาชิกจาก ชื่อ เบอร์โทร..." class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" />
 
-                                    <div class="flex items-center gap-4">
-                                        <div class="flex items-center gap-2">
-                                            <button class="update-quantity bg-gray-300 text-gray-700 rounded px-3 py-1"
-                                                    data-action="decrement" data-order-detail-id="{{ detail.id }}">-</button>
-                                            <span id="quantity-{{ detail.id }}" class="text-sm font-semibold text-gray-700">{{ detail.quantity }}</span>
-                                            <button class="update-quantity bg-gray-300 text-gray-700 rounded px-3 py-1"
-                                                    data-action="increment" data-order-detail-id="{{ detail.id }}">+</button>
-                                        </div>
-                                        <div class="text-sm font-semibold text-gray-700 ml-4">{{ detail.price }} ฿</div>
-                                        <button class="delete-order-detail text-red-500 ml-4"
-                                                data-order-detail-id="{{ detail.id }}">🗑️</button>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        {% else %}
-                            <img class="mx-auto w-32 h-32 object-contain" src="{% static 'no-task.png' %}" />
-                            <p class="text-center text-gray-500">คำสั่งซื้อว่างเปล่า</p>
-                        {% endif %}
-                    </div>
+</div>
 
-                    <div class="mt-auto flex justify-center">
-                        <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-md">
-                            ชำระเงิน
-                        </button>
-                    </div>
-                </form>
+<ul id="customer-list" class="hidden bg-white border border-gray-300 rounded-lg shadow-lg absolute z-10 mt-24 w-1/4 max-h-60 overflow-auto">
+    <!-- Results will be populated here -->
+</ul>
+<!-- Customer Information Form -->
+<div class="mb-6">
+    <form method="POST" action="{% if order %}{% url 'paynow' order.id %}{% else %}#{% endif %}">
+        {% csrf_token %}
+        <div class="flex gap-4 mb-4">
+            <div class="w-full">
+                <label for="customer_phone" class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์(สมาชิก)</label>
+                <input type="text" id="customer_phone" name="customer_phone" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" value="{{ order.customer_phone }}" readonly required>
             </div>
+            <div class="w-full">
+                <label for="customer_name" class="block text-sm font-medium text-gray-700">ชื่อลูกค้า(สมาชิก)</label>
+                <input type="text" id="customer_name" name="customer_name" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" value="{{ order.customer_name }}" readonly required>
+            </div>
+            <div class="mt-4">
+            <button type="button" id="clear-customer-data" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1 mt-2 rounded-md">
+                ลบ
+            </button>
+        </div>
+
+        </div>
+        <div class="flex-1 overflow-auto mb-6">
+            {% if order and order.order_details.all %}
+                {% for detail in order.order_details.all %}
+                    <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
+                                {% if detail.product.img_product %}
+                                    <img src="{{ detail.product.img_product.url }}" alt="{{ detail.product.product_name }}" class="w-full h-full object-cover">
+                                {% else %}
+                                    <span class="text-gray-400">No Image</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-700">{{ detail.product.product_name }}</h3>
+                                <p class="text-xs text-gray-500">
+                                    {% if detail.options.all %}
+                                        {% for option in detail.options.all %}
+                                            {{ option.name }} (+{{ option.price }} ฿)<br>
+                                        {% endfor %}
+                                    {% else %}
+                                    {% endif %}
+                                </p> 
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <button class="update-quantity bg-gray-300 text-gray-700 rounded px-3 py-1"
+                                        data-action="decrement" data-order-detail-id="{{ detail.id }}">-</button>
+                                <span id="quantity-{{ detail.id }}" class="text-sm font-semibold text-gray-700">{{ detail.quantity }}</span>
+                                <button class="update-quantity bg-gray-300 text-gray-700 rounded px-3 py-1"
+                                        data-action="increment" data-order-detail-id="{{ detail.id }}">+</button>
+                            </div>
+                            <div class="text-sm font-semibold text-gray-700 ml-4">{{ detail.price }} ฿</div>
+                            <button class="delete-order-detail text-red-500 ml-4"
+                                    data-order-detail-id="{{ detail.id }}">🗑️</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <img class="mx-auto w-32 h-32 object-contain" src="{% static 'no-task.png' %}" />
+                <p class="text-center text-gray-500">คำสั่งซื้อว่างเปล่า</p>
+            {% endif %}
+        </div>
+
+        <div class="mt-auto flex justify-center">
+            <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-md">
+                ชำระเงิน
+            </button>
+        </div>
+    </form>
+</div>
         </div>
     </div>
 </div>
+
 <div id="modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 hidden">
     <div class="flex justify-center items-center min-h-screen">
         <div class="bg-white p-6 rounded-lg shadow-lg w-96">
@@ -353,6 +368,69 @@ document.querySelectorAll('.delete-order-detail').forEach(button => {
         .catch(error => console.log(error));
     });
 });
+document.getElementById('customer-search').addEventListener('input', function () {
+    const query = this.value.trim(); // Remove leading/trailing whitespace
+    const customerList = document.getElementById('customer-list');
+
+    if (query.length >= 3) {
+        fetch(`/search_member/?search=${encodeURIComponent(query)}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch customer data');
+                }
+                return response.json();
+            })
+            .then(data => {
+                customerList.innerHTML = ''; // Clear previous results
+
+                if (data.customers.length) {
+                    data.customers.forEach(customer => {
+                        const li = document.createElement('li');
+                        li.classList.add(
+                            'cursor-pointer',
+                            'px-4', 'py-3',
+                            'hover:bg-blue-50',
+                            'hover:text-blue-600',
+                            'focus:bg-blue-100',
+                            'focus:outline-none',
+                            'transition-all',
+                            'duration-150',
+                            'ease-in-out'
+                        );
+                        li.textContent = `${customer.name} - ${customer.phone} (แต้ม: ${customer.points} แต้ม)`;
+
+                        li.onclick = function () {
+                            // Populate fields with selected customer data
+                            document.getElementById('customer_name').value = customer.name;
+                            document.getElementById('customer_phone').value = customer.phone;
+
+                            // Hide the list after selection
+                            customerList.innerHTML = '';
+                            customerList.classList.add('hidden');
+                        };
+
+                        customerList.appendChild(li);
+                    });
+                    customerList.classList.remove('hidden'); // Show the list
+                } else {
+                    customerList.innerHTML = `<li class="px-4 py-3 text-gray-500 italic">ไม่เจอสมาชิก</li>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching customers:', error);
+                customerList.innerHTML = `<li class="px-4 py-3 text-red-500 italic">Error loading results</li>`;
+                customerList.classList.remove('hidden');
+            });
+    } else {
+        customerList.classList.add('hidden'); // Hide the list if the query is less than 3 characters
+    }
+});
+document.getElementById('clear-customer-data').addEventListener('click', function() {
+    // ทำให้ข้อมูลในฟิลด์ customer_name และ customer_phone ว่าง
+    document.getElementById('customer_name').value = '';
+    document.getElementById('customer_phone').value = '';
+});
+
 </script>
 </body>
 </html>

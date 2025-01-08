@@ -18,12 +18,12 @@
 <div class="bg-white shadow-md p-6">
     <div class="container mx-auto flex flex-wrap sm:flex-row justify-center items-center gap-4">
         <!-- Search Box -->
-        <form action="{% url 'home' %}" method="get" 
+        <form action="{% url 'home' %}" method="get"
               class="w-full sm:w-1/3 flex bg-gray-100 border border-gray-300 rounded-lg shadow p-1 ml-40">
             <input type="hidden" name="category" value="{{ category }}">
-            <input type="text" name="q" value="{{ query }}" placeholder="ค้นหา..." 
+            <input type="text" name="q" value="{{ query }}" placeholder="ค้นหา..."
                    class="w-full border-none outline-none text-gray-600 px-2 text-sm" required>
-            <button type="submit" 
+            <button type="submit"
                     class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 text-sm rounded-md">
                 ค้นหา
             </button>
@@ -32,7 +32,7 @@
         <!-- Time and Add Menu -->
         <div class="flex items-center gap-4">
             <div id="time-display" class="text-gray-600 font-medium"></div>
-            <a href="{% url 'addmenu' %}" 
+            <a href="{% url 'addmenu' %}"
                class="flex items-center bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 4v16m8-8H4"></path>

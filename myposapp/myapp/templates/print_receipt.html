@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ใบเสร็จรับเงินสำหรับการสั่งซื้อ #{{ order.id }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800">
+
+    <div class="max-w-3xl mx-auto my-10 p-6 bg-white shadow-md rounded-lg">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold">การชำระเงินสำหรับ Order #{{ order.id }}</h1>
+            <p><strong>ชื่อลูกค้า:</strong> {{ order.customer_name }}</p>
+            <p><strong>เบอร์โทรศัพท์:</strong> {{ order.customer_phone }}</p>
+            <p><strong>Date:</strong> {{ order.created_at }}</p>
+        </div>
+
+        <div class="mb-6 mt-6">
+            <table class="w-full border-collapse border border-gray-300">
+                <thead>
+                    <tr>
+                        <th class="border border-gray-300 px-4 py-2 bg-gray-100 text-sm font-medium text-gray-700">โปรดักส์</th>
+                        <th class="border border-gray-300 px-4 py-2 bg-gray-100 text-sm font-medium text-gray-700">ตัวเลือก</th>
+                        <th class="border border-gray-300 px-4 py-2 bg-gray-100 text-sm font-medium text-gray-700">จำนวน</th>
+                        <th class="border border-gray-300 px-4 py-2 bg-gray-100 text-sm font-medium text-gray-700">ราคาต่อหน่วย</th>
+                        <th class="border border-gray-300 px-4 py-2 bg-gray-100 text-sm font-medium text-gray-700">ราคาสินค้ารวม</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detail in order_details %}
+                    <tr class="border-t">
+                        <td class="border border-gray-300 px-4 py-2 text-sm">{{ detail.product_name }}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm">
+                            {% if detail.options.all %}
+                                {% for option in detail.options.all %}
+                                    {{ option.name }} (+{{ option.price }} ฿)<br>
+                                {% endfor %}
+                            {% else %}
+                                ไม่ได้เลือกตัวเลือก
+                            {% endif %}
+                        </td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm">{{ detail.quantity }}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm">{{ detail.unit_price }} ฿</td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm">{{ detail.total_item_price }} ฿</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center border border-gray-300 px-4 py-2 text-sm">ไม่พบสินค้าในการสั่งซื้อ</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="text-right font-semibold mt-4">
+            <p class="text-lg">ราคาสั่งซื้อทั้งหมด: <strong>{{ total_order_price }} ฿</strong></p>
+            <p class="text-lg">แต้มที่ได้รับ: <strong>{{ points_earned }} แต้ม</strong></p>
+        </div>
+
+        <!-- Button to trigger printing -->
+        <button class="w-full mt-6 bg-green-500 text-white py-2 rounded-md text-lg hover:bg-green-600" onclick="window.print()">พิมพ์ใบเสร็จ</button>
+    </div>
+
+    <script>
+        // Automatically trigger the print dialog when the page loads
+        window.onload = function() {
+            window.print();
+        };
+    </script>
+</body>
+</html>

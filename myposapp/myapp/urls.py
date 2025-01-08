@@ -18,6 +18,8 @@ urlpatterns = [
     path('inventory/', views.inventory, name='inventory'),
     path('history/', views.History_Order, name='History_Order'),
     path('member/', views.Member1, name='member'),
+    path('edit_member/<int:member_id>/', views.edit_member, name='edit_member'),
+    path('delete_member/<int:member_id>/', views.delete_member, name='delete_member'),
     path('addmenu/', views.Addmenu, name='addmenu'),
     #path('add_to_cart/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
     path('add_to_order/', views.add_to_order, name='add_to_order'),  # เพิ่มเส้นทางสำหรับเพิ่มสินค้าใน order
@@ -33,6 +35,7 @@ urlpatterns = [
     path('password_reset_confirm/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='password_reset_confirm.html'), name='password_reset_confirm'),
     path('password_reset_complete/', auth_views.PasswordResetCompleteView.as_view(template_name='password_reset_complete.html'), name='password_reset_complete'),
     path('get_order_details/<int:order_id>/', views.get_order_details, name='get_order_details'),
-
-
+    path('search_member/', views.search_member, name='search_member'),
+    path('update-points-config/', views.update_points_config, name='update_points_config'),
+    path('order/<int:order_id>/print/', views.print_receipt, name='print_receipt'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

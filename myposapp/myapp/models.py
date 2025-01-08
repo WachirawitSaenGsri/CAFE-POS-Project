@@ -48,6 +48,7 @@ class Order(models.Model):
     customer_phone = models.CharField(max_length=20,null=True,blank=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, default='Pending')
 
     def __str__(self):
         return f"Order #{self.id}"
@@ -76,3 +77,18 @@ class Payment(models.Model):
     def __str__(self):
         return f"Payment for Order #{self.order.id} - {self.payment_status}"
 
+class customerMember(models.Model):
+    name = models.CharField(max_length=100)  # ชื่อลูกค้า
+    email = models.EmailField(unique=True)  # อีเมลของลูกค้า
+    phone = models.CharField(max_length=20, unique=True)  # เบอร์โทรศัพท์ของลูกค้า
+    points = models.PositiveIntegerField(default=0)  # จำนวนแต้มสะสมของลูกค้า
+    created_at = models.DateTimeField(auto_now_add=True)  # วันที่ลงทะเบียนลูกค้า
+
+    def __str__(self):
+        # แสดงชื่อและเบอร์โทรของลูกค้าในรูปแบบข้อความ
+        return f"{self.name} ({self.phone})"
+class PointsConfig(models.Model):
+    points_per_baht = models.DecimalField(max_digits=5, decimal_places=2, default=1.00)
+
+    def __str__(self):
+        return f"Points per Baht: {self.points_per_baht}"

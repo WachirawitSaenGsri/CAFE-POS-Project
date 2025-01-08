@@ -9,5 +9,7 @@ admin.site.register(OrderDetail)
 admin.site.register(Option)
 admin.site.register(Payment)
 admin.site.register(Category)
+admin.site.register(customerMember)
+admin.site.register(PointsConfig)
 
 
