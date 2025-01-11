@@ -112,7 +112,7 @@
                             </button>
 
                             <!-- Complete Order Button -->
-                            <button onclick="" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md ml-2">
+                            <button onclick="completeOrder({{ order.id }})" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md ml-2">
                                 เสร็จสิ้น
                             </button>
                         </td>
@@ -157,7 +157,25 @@
         </div>
     </div>
 </div>
-
+<!-- Modal for Success -->
+<div id="success-modal" class="fixed inset-0 flex items-center justify-center bg-gray-500 bg-opacity-50 z-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md flex flex-col items-center">
+        <div class="flex items-center justify-between w-full mb-4">
+            <h3 class="text-2xl font-semibold text-green-600 text-center w-full" id="modal-title">สำเร็จ!</h3>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 ml-auto">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <p id="modal-message" class="text-lg text-gray-700 text-center mb-6">สถานะคำสั่งซื้อได้รับการอัพเดทสำเร็จ</p>
+        <div class="mt-6 flex justify-center w-full">
+            <button onclick="closeModal()" class="bg-green-500 text-white px-6 py-2 rounded-md shadow-md hover:bg-green-600 transition duration-200">
+                ปิด
+            </button>
+        </div>
+    </div>
+</div>
 <script>
 // Function to show order details
 function showOrderDetail(orderId) {
@@ -202,6 +220,49 @@ function showOrderDetail(orderId) {
 // Function to close order details
 function closeOrderDetail() {
     document.getElementById('order-detail').classList.add('hidden');
+}
+// Function to complete an order (change status to 'Success')
+function completeOrder(orderId) {
+    // Send a request to the backend to update the order's status
+    fetch(`/complete_order/${orderId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}', // Ensure CSRF token is included
+        },
+        body: JSON.stringify({
+            'order_id': orderId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // If successful, show the success modal
+            showModal(data.message);  // Show the modal with a success message
+            // Optionally, reload the page or update the table
+            setTimeout(function() {
+                window.location.reload();
+            }, 5000); // Reload after 5 seconds to give the user time to read the message
+        } else {
+            showModal('เกิดข้อผิดพลาดในการเปลี่ยนแปลงสถานะคำสั่งซื้อ');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showModal('เกิดข้อผิดพลาดในการส่งคำขอ');
+    });
+}
+
+// Function to show the modal
+function showModal(message) {
+    document.getElementById('modal-message').innerText = message;
+    document.getElementById('success-modal').classList.remove('hidden');
+}
+
+// Function to close the modal
+function closeModal() {
+    document.getElementById('success-modal').classList.add('hidden');
+    location.reload();
 }
 </script>
 

@@ -11,5 +11,5 @@ admin.site.register(Payment)
 admin.site.register(Category)
 admin.site.register(customerMember)
 admin.site.register(PointsConfig)
-
+admin.site.register(Store)
 

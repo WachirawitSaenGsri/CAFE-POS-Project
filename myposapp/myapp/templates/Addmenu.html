@@ -122,7 +122,7 @@
                 <div class="mb-4">
                     <label for="category" class="block text-sm font-medium text-gray-700">หมวดหมู่</label>
                     <select name="category" id="category" class="w-full border border-gray-300 rounded px-3 py-2">
-                        {% for category in form.fields.category.queryset %}
+                        {% for category in categories %}
                             <option value="{{ category.id }}">{{ category.name }}</option>
                         {% endfor %}
                     </select>

@@ -20,7 +20,7 @@
 {% include 'component/navbar.html' %}
 <!-- Categories -->
 <div class="container mx-auto my-6">
-    <div class="flex justify-start gap-4 ml-96 mr-48">
+    <div class="flex flex-wrap justify-start gap-4 ml-64 mr-48">
         <a href="{% url 'home' %}?category=all"
            class="px-4 py-2 bg-white rounded-lg shadow text-gray-700 hover:bg-gray-100 {% if category == 'all' %}bg-yellow-500 text-white{% endif %}">
            All Menu
@@ -246,7 +246,7 @@ document.querySelectorAll('.add-to-order-btn').forEach(button => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')  // ส่ง csrf token ไปด้วย
+                'X-CSRFToken': '{{ csrf_token }}',  // ส่ง csrf token ไปด้วย
             },
             body: JSON.stringify({
                 product_id: productId,
@@ -285,22 +285,6 @@ function showModal(title, message) {
         <p class="text-gray-600 mt-4">${message}</p>
     `;
     document.getElementById('modal').classList.remove('hidden');  // แสดง Modal
-}
-
-// ฟังก์ชั่นสำหรับรับ CSRF token จาก cookies
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
 }
 
 // Update quantity of order item

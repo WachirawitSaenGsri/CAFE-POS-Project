@@ -12,6 +12,8 @@ from django.core.paginator import Paginator
 from .forms import *
 from django.db import transaction
 from myapp.models import *
+from datetime import datetime, timedelta
+
 
 def user_login(request):
     if request.method == 'POST':
@@ -22,7 +24,18 @@ def user_login(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect('home')
+
+            # Ensure that user is associated with a store
+            try:
+                member = user.member_profile  # Access member profile via 'member_profile'
+                if member.store:
+                    return redirect('home')  # Redirect to the home page if store exists
+                else:
+                    messages.error(request, 'ผู้ใช้ไม่เชื่อมโยงกับร้านค้าใดๆ')
+                    return redirect('login')
+            except Member.DoesNotExist:
+                messages.error(request, 'ไม่พบข้อมูลสมาชิก')
+                return redirect('login')
         else:
             messages.error(request, 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง')
     return render(request, 'login.html')
@@ -30,7 +43,6 @@ def user_login(request):
 def user_logout(request):
     logout(request)
     return redirect('login')  # เมื่อ logout แล้วให้กลับไปหน้า login
-
 
 def register(request):
     if request.method == 'POST':
@@ -40,6 +52,7 @@ def register(request):
         confirm_password = request.POST.get('confirm_password', '')
         firstname = request.POST.get('firstname', '').strip()
         lastname = request.POST.get('lastname', '').strip()
+        store_name = request.POST.get('store_name', '').strip()
 
         # ตรวจสอบข้อมูลพื้นฐาน
         if not username or not email or not password or not confirm_password or not firstname or not lastname:
@@ -69,7 +82,8 @@ def register(request):
             user.first_name = firstname
             user.last_name = lastname
             user.save()
-            Member.objects.create(user=user)
+            store = Store.objects.create(name=store_name, owner=user)
+            Member.objects.create(user=user, store=store)
             messages.success(request, 'การลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบ.')
             return redirect('login')
         except Exception as e:
@@ -79,15 +93,14 @@ def register(request):
     return render(request, 'register.html')
 
 @login_required
-def Menu(request):
-    products = Product.objects.all()  # ดึงข้อมูลสินค้าทั้งหมดจากฐานข้อมูล
-    return render(request, 'home.html', {'products': products})
-
-
-@login_required
 def Order1(request):
     # Fetch all orders with payment status as 'Success'
-    orders = Order.objects.filter(payment__payment_status='Success')
+    store = request.user.member_profile.store
+    orders = Order.objects.filter(
+        payment__payment_status='Success',
+        store=store,
+        status='Pending'
+    )
 
     # Pagination: Set the number of orders per page
     page_number = request.GET.get('page', 1)
@@ -131,13 +144,30 @@ def get_order_details(request, order_id):
     }
 
     return JsonResponse(data)
+@login_required
+@csrf_exempt
+def complete_order(request, order_id):
+    # ดึงข้อมูลคำสั่งซื้อตาม ID
+    order = get_object_or_404(Order, id=order_id)
 
+    # ตรวจสอบให้แน่ใจว่าคำสั่งซื้อเป็นของร้านค้าของผู้ใช้ที่เข้าสู่ระบบ
+    if order.store != request.user.member_profile.store:
+        messages.error(request, 'คุณไม่มีสิทธิ์เปลี่ยนแปลงสถานะของคำสั่งซื้อนี้')
+        return redirect('order')
+
+    # อัปเดตสถานะคำสั่งซื้อเป็น 'Success'
+    order.status = 'Success'
+    order.save()
+
+    messages.success(request, f'Order #{order.id} เสร็จสมบูรณ์เรียบร้อยแล้ว')
+    return JsonResponse({'status': 'success', 'message': 'อัปเดตสถานะคำสั่งซื้อเป็นสำเร็จแล้ว'})
 @login_required
 @csrf_exempt
 def PayNow(request, order_id):
     try:
         # Fetch the order object
         order = get_object_or_404(Order, id=order_id)
+        store = request.user.member_profile.store
 
         if request.method == 'POST':
             form = CustomerInfoForm(request.POST)
@@ -150,8 +180,8 @@ def PayNow(request, order_id):
                 # Update the order with customer information
                 order.customer_name = customer_name
                 order.customer_phone = customer_phone
+                order.store = store
                 order.save()
-
                 # Redirect to the payment page
                 return redirect('payment', order_id=order.id)
 
@@ -181,7 +211,7 @@ from decimal import Decimal
 @login_required
 def PayMent(request, order_id):
     order = get_object_or_404(Order, id=order_id)
-
+    store = request.user.member_profile.store
     # Initialize total order price
     total_order_price = Decimal(0)
 
@@ -232,6 +262,7 @@ def PayMent(request, order_id):
             amount=total_order_price,
             payment_method=payment_method,
             payment_status='Success' if change >= 0 else 'Failed',
+            store=store,
         )
 
         # Update customer points if the customer is found
@@ -297,15 +328,66 @@ def inventory(request):
 
 @login_required
 def History_Order(request):
-    return render(request, 'History_Order.html')
+    store = request.user.member_profile.store  # Get the store associated with the logged-in user
+    search_query = request.GET.get('search', '')  # Get the search query (Order ID, customer name, etc.)
+    date_filter = request.GET.get('date_filter', '')  # Get the selected date filter (e.g., 'today', 'this_week')
+
+    # Initialize the filter condition for orders
+    orders = Order.objects.filter(store=store, payment__payment_status='Success')  # Default: all successful orders
+
+    # Apply date filters
+    if date_filter == 'today':
+        today = datetime.today().date()
+        orders = orders.filter(created_at__date=today)
+    elif date_filter == 'this_week':
+        today = datetime.today().date()
+        start_of_week = today - timedelta(days=today.weekday())  # Get the start of the week
+        end_of_week = start_of_week + timedelta(days=6)  # Get the end of the week
+        orders = orders.filter(created_at__date__range=[start_of_week, end_of_week])
+    elif date_filter == 'this_month':
+        today = datetime.today()
+        first_day_of_month = today.replace(day=1)  # Get the first day of the current month
+        last_day_of_month = (first_day_of_month.replace(month=first_day_of_month.month + 1) - timedelta(days=1))  # Last day of the month
+        orders = orders.filter(created_at__date__range=[first_day_of_month.date(), last_day_of_month.date()])
+    elif date_filter == 'custom':
+        start_date = request.GET.get('start_date', '')
+        end_date = request.GET.get('end_date', '')
+        if start_date and end_date:
+            try:
+                start_date = datetime.strptime(start_date, '%Y-%m-%d')
+                end_date = datetime.strptime(end_date, '%Y-%m-%d')
+                orders = orders.filter(created_at__date__range=[start_date.date(), end_date.date()])
+            except ValueError:
+                pass  # If the date format is wrong, ignore the custom date filter
+
+    # Apply search query filter
+    if search_query:
+        orders = orders.filter(
+            Q(id__icontains=search_query) |
+            Q(customer_name__icontains=search_query) |
+            Q(order_details__product__product_name__icontains=search_query) |
+            Q(status__icontains=search_query)
+        ).distinct()
+
+    # Pagination: Set the number of orders per page
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(orders, 10)  # Show 10 orders per page
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'History_Order.html', {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'date_filter': date_filter
+    })
 
 
 @login_required
 def update_points_config(request):
+    store = request.user.member_profile.store
     # Only allow admin to access this page
     if not request.user.is_superuser:
         return redirect('home')
-    points_config, created = PointsConfig.objects.get_or_create(id=1)
+    points_config, created = PointsConfig.objects.get_or_create(store=store)
 
     if request.method == 'POST':
         form = PointsConfigForm(request.POST, instance=points_config)
@@ -325,6 +407,7 @@ def Member1(request):
     # Get the PointsConfig instance to pass the form to the template
     points_config = PointsConfig.objects.first()  # Assuming only one instance exists
     form = PointsConfigForm(instance=points_config)
+    store = request.user.member_profile.store
 
     # Handle searching for customers
     search_query = request.GET.get('search', '')
@@ -332,15 +415,18 @@ def Member1(request):
         customers = customerMember.objects.filter(
             Q(name__icontains=search_query) |
             Q(email__icontains=search_query) |
-            Q(phone__icontains=search_query)
+            Q(phone__icontains=search_query),
+            store=store
         )
     else:
-        customers = customerMember.objects.all()
+        customers = customerMember.objects.filter(store=store)
 
     if request.method == "POST":
         form = CustomerMemberForm(request.POST)
         if form.is_valid():
-            form.save()
+            member = form.save(commit=False)
+            member.store = store
+            member.save()
             messages.success(request, "สมาชิกใหม่ถูกเพิ่มแล้ว!")
             return redirect("member")
         else:
@@ -379,17 +465,19 @@ def delete_member(request, member_id):
 @login_required
 def Addmenu(request):
     search_query = request.GET.get('search', '')  # รับคำค้นหาจากฟอร์ม
-
+    store = request.user.member_profile.store
+    categories = Category.objects.filter(store=store)
     # ถ้าคำค้นหามีการระบุ
     if search_query:
         products = Product.objects.filter(
             Q(product_name__icontains=search_query) |
             Q(category__name__icontains=search_query) |
-            Q(description__icontains=search_query)
+            Q(description__icontains=search_query),
+            store=store
         )
     else:
         # ถ้าไม่มีคำค้นหาก็ให้ดึงสินค้าทั้งหมด
-        products = Product.objects.all()
+        products = Product.objects.filter(store=store)
 
     # การแบ่งหน้า
     page_number = request.GET.get('page', 1)  # รับค่าหน้าจาก query string
@@ -398,19 +486,19 @@ def Addmenu(request):
 
     form = ProductForm()  # ฟอร์มสำหรับการเพิ่มสินค้า
 
-    return render(request, 'Addmenu.html', {'products': page_obj, 'form': form, 'search_query': search_query})
+    return render(request, 'Addmenu.html', {'products': page_obj, 'form': form, 'search_query': search_query, 'categories': categories})
 
 @login_required
 def home(request):
     query = request.GET.get('q', '')  # รับค่าคำค้นหา
     category = request.GET.get('category', 'all')  # รับหมวดหมู่
     page_number = request.GET.get('page', 1)  # รับหมายเลขหน้า
-
+    store = request.user.member_profile.store
     # ดึงหมวดหมู่ทั้งหมดที่มีอยู่ในฐานข้อมูล
-    categories = Category.objects.all()  # ดึงหมวดหมู่ทั้งหมดจากฐานข้อมูล
+    categories = Category.objects.filter(store=store)  # ดึงหมวดหมู่ทั้งหมดจากฐานข้อมูล
 
     # ดึงสินค้าทั้งหมด
-    products = Product.objects.all()
+    products = Product.objects.filter(store=store)
 
     # กรองสินค้าตามคำค้นหา (query)
     if query:
@@ -468,6 +556,7 @@ def home(request):
 @login_required
 def search_member(request):
     search_query = request.GET.get('search', '').strip()
+    store = request.user.member_profile.store
 
     if search_query:
         customers = customerMember.objects.filter(
@@ -475,7 +564,7 @@ def search_member(request):
             Q(email__icontains=search_query) |
             Q(phone__icontains=search_query) |
             Q(points__icontains=search_query)
-        )
+        ,store=store)
     else:
         customers = customerMember.objects.none()  # ไม่มีการค้นหาหรือคำค้นหาเป็นค่าว่าง
 
@@ -621,7 +710,10 @@ def add_product(request):
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES)  # รับข้อมูลแบบฟอร์ม (รวมถึงตัวเลือก)
         if form.is_valid():
-            product = form.save()
+            product = form.save(commit=False)
+            store = request.user.member_profile.store  # Get the store associated with the user
+            product.store = store  # Associate product with the user's store
+            product.save()
             option_names = request.POST.getlist('option_name[]')
             option_prices = request.POST.getlist('option_price[]')
             for name, price in zip(option_names, option_prices):
@@ -701,13 +793,13 @@ def add_category(request):
 
             if not category_name:
                 return JsonResponse({'status': 'error', 'message': 'Category name is required'})
-
+            store = request.user.member_profile.store
             # ตรวจสอบว่ามีหมวดหมู่อยู่แล้วหรือไม่
-            if Category.objects.filter(name=category_name).exists():
+            if Category.objects.filter(name=category_name, store=store).exists():
                 return JsonResponse({'status': 'error', 'message': 'Category already exists'})
 
             # สร้างหมวดหมู่ใหม่
-            category = Category.objects.create(name=category_name)
+            category = Category.objects.create(name=category_name, store=store)
             return JsonResponse({'status': 'success', 'message': 'Category added successfully', 'category_name': category.name})
 
         except Exception as e:
