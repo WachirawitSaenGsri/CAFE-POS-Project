@@ -3,7 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 class Store(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    owner = models.OneToOneField(User, on_delete=models.CASCADE, related_name="store")  # Owner of the store
+    owner = models.OneToOneField(User, on_delete=models.CASCADE, related_name="store")  # เจ้าของร้าน
 
     def __str__(self):
         return self.name
@@ -15,7 +15,7 @@ class Member(models.Model):
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='member_profile')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='owner')
-    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="members", null=True, blank=True)  # Associate member with a store
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="members", null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name} ({self.user.username}) - {self.role}"
@@ -27,26 +27,42 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
-#class Unit(models.Model):
-    #name = models.CharField(max_length=100, unique=True)
-#class Stock(models.Model):
-    #name = models.CharField(max_length=100, unique=True)
-    #amount = models.IntegerField(default=0)
-    #unit = models.ForeignKey('Unit', on_delete=models.SET_NULL, null=True)
+
+class Ingredient(models.Model):
+    name = models.CharField(max_length=100)  # ชื่อวัตถุดิบ
+    unit = models.CharField(max_length=50)  # หน่วย เช่น กรัม, ลิตร
+    stock = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # ปริมาณวัตถุดิบในสต็อก
+    reorder_level = models.DecimalField(max_digits=10, decimal_places=2, default=10)  # ปริมาณที่ควรเติมเมื่อวัตถุดิบเหลือน้อย
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="ingredients", null=True, blank=True)
+
+    def __str__(self):
+        return self.name
 class Product(models.Model):
     product_name = models.CharField(max_length=100)
     img_product = models.ImageField(upload_to='img/', null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)  # เชื่อมโยงกับหมวดหมู่
-    stock = models.IntegerField(default=0,null=True,blank=True)
-    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="products", null=True, blank=True)  # Associate product with store
+    #stock = models.IntegerField(default=0,null=True,blank=True)
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="products", null=True, blank=True)
+    ingredients = models.ManyToManyField(Ingredient, through='ProductIngredient')  # เชื่อมโยงกับวัตถุดิบ
 
     def __str__(self):
         return self.product_name
-
     def is_low_stock(self):
-        return self.stock <= 5
+        for ingredient in self.ingredients.all():
+            if ingredient.stock < ingredient.reorder_level:
+                return True
+        return False
+
+class ProductIngredient(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)  # จำนวนที่ใช้ในแต่ละผลิตภัณฑ์
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="productingredients", null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.product.product_name} uses {self.quantity} {self.ingredient.unit} of {self.ingredient.name}"
 
 class Option(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='options')  # เชื่อมโยงกับ Product
@@ -63,12 +79,29 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, default='Pending')
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="orders", null=True, blank=True)
+    products = models.ManyToManyField(Product)
 
     def __str__(self):
         return f"Order #{self.id}"
 
     def update_total_price(self):
         self.total_price = sum([item.price for item in self.order_details.all()])
+        self.save()
+
+    def update_stock(self):
+        for order_detail in self.order_details.all():
+            product = order_detail.product
+            for product_ingredient in product.productingredient_set.all():
+                ingredient = product_ingredient.ingredient
+                quantity_used = product_ingredient.quantity * order_detail.quantity  # ปริมาณส่วนผสมที่ใช้
+
+                if ingredient.stock >= quantity_used:
+                    ingredient.stock -= quantity_used  # หักสต๊อก
+                    ingredient.save()
+                else:
+                    raise ValueError(f"Not enough stock for {ingredient.name}")
+
+        # หลังจากอัพเดตสต๊อกแล้วให้บันทึกคำสั่งซื้อ
         self.save()
 
 class OrderDetail(models.Model):

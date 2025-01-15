@@ -25,11 +25,11 @@ def user_login(request):
         if user is not None:
             login(request, user)
 
-            # Ensure that user is associated with a store
+            # ตรวจสอบให้แน่ใจว่าผู้ใช้เชื่อมโยงกับร้านค้า
             try:
-                member = user.member_profile  # Access member profile via 'member_profile'
+                member = user.member_profile  # เข้าถึงโปรไฟล์สมาชิกผ่าน 'member_profile'
                 if member.store:
-                    return redirect('home')  # Redirect to the home page if store exists
+                    return redirect('home')  # เปลี่ยนเส้นทางไปยังหน้าแรกหากมีร้านค้าอยู่
                 else:
                     messages.error(request, 'ผู้ใช้ไม่เชื่อมโยงกับร้านค้าใดๆ')
                     return redirect('login')
@@ -94,7 +94,7 @@ def register(request):
 
 @login_required
 def Order1(request):
-    # Fetch all orders with payment status as 'Success'
+    # รับคำสั่งซื้อทั้งหมดที่มีสถานะการชำระเงินเป็น 'สำเร็จ'
     store = request.user.member_profile.store
     orders = Order.objects.filter(
         payment__payment_status='Success',
@@ -102,30 +102,30 @@ def Order1(request):
         status='Pending'
     )
 
-    # Pagination: Set the number of orders per page
+    # Pagination: กำหนดจำนวนคำสั่งซื้อต่อหน้า
     page_number = request.GET.get('page', 1)
-    paginator = Paginator(orders, 10)  # Show 10 orders per page
+    paginator = Paginator(orders, 10)  # แสดง 10 คำสั่งซื้อต่อหน้า
     page_obj = paginator.get_page(page_number)
 
-    # Calculate the total quantity for each order
+    # คำนวณปริมาณรวมสำหรับการสั่งซื้อแต่ละครั้ง
     for order in page_obj:
         total_quantity = sum(detail.quantity for detail in order.order_details.all())
-        order.total_quantity = total_quantity  # Add total_quantity as a dynamic attribute
+        order.total_quantity = total_quantity
 
     return render(request, 'Order.html', {'page_obj': page_obj})
 
 @login_required
 def get_order_details(request, order_id):
-    # Retrieve the order from the database
+    #ดึงข้อมูลคำสั่งซื้อจากฐานข้อมูล
     order = get_object_or_404(Order, id=order_id)
 
-    # Prepare order details to send back in JSON format
+    # เตรียมรายละเอียดการสั่งซื้อเพื่อส่งกลับในรูปแบบ JSON
     order_details = [
         {
             'product_name': detail.product.product_name,
             'quantity': detail.quantity,
-            'unit_price': str(detail.price),  # Returning unit price
-            'total_item_price': str(detail.quantity * detail.price),  # Total price = unit price * quantity
+            'unit_price': str(detail.price),  # คืนราคาต่อหน่วย
+            'total_item_price': str(detail.quantity * detail.price),  # ราคารวม = ราคาต่อหน่วย * ปริมาณ
             'options': [
                 {'name': option.name, 'price': str(option.price)} for option in detail.options.all()
             ]
@@ -133,7 +133,7 @@ def get_order_details(request, order_id):
         for detail in order.order_details.all()
     ]
 
-    # Prepare the final data to send back
+    #เตรียมข้อมูลสุดท้ายเพื่อส่งกลับ
     data = {
         'order_id': order.id,
         'customer_name': order.customer_name,
@@ -165,7 +165,6 @@ def complete_order(request, order_id):
 @csrf_exempt
 def PayNow(request, order_id):
     try:
-        # Fetch the order object
         order = get_object_or_404(Order, id=order_id)
         store = request.user.member_profile.store
 
@@ -173,23 +172,23 @@ def PayNow(request, order_id):
             form = CustomerInfoForm(request.POST)
 
             if form.is_valid():
-                # Get the customer data from the form
+                # รับข้อมูลลูกค้าจากแบบฟอร์ม
                 customer_name = form.cleaned_data['customer_name']
                 customer_phone = form.cleaned_data['customer_phone']
 
-                # Update the order with customer information
+                #อัพเดทออเดอร์พร้อมข้อมูลลูกค้า
                 order.customer_name = customer_name
                 order.customer_phone = customer_phone
                 order.store = store
                 order.save()
-                # Redirect to the payment page
+                # เปลี่ยนเส้นทางไปยังหน้าการชำระเงิน
                 return redirect('payment', order_id=order.id)
 
             else:
                 messages.error(request, 'กรุณากรอกข้อมูลให้ครบถ้วน')
 
         else:
-            # If not a POST request, render the form with the existing customer data (if available)
+            # หากไม่ใช่คำขอ POST ให้แสดงแบบฟอร์มด้วยข้อมูลลูกค้าที่มีอยู่ (ถ้ามี)
             form = CustomerInfoForm(initial={
                 'customer_name': order.customer_name,
                 'customer_phone': order.customer_phone,
@@ -212,10 +211,10 @@ from decimal import Decimal
 def PayMent(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     store = request.user.member_profile.store
-    # Initialize total order price
+    # เริ่มต้นราคาสั่งซื้อทั้งหมด
     total_order_price = Decimal(0)
 
-    # List to hold order details with updated price calculation
+    # รายการเก็บรายละเอียดคำสั่งซื้อพร้อมการคำนวณราคาที่อัปเดต
     order_details = []
 
     for detail in order.order_details.all():
@@ -232,17 +231,17 @@ def PayMent(request, order_id):
         })
         total_order_price += total_item_price
 
-    # Fetch the points configuration (how many points per baht)
+    # ดึงการกำหนดค่าคะแนน (บาทละกี่คะแนน)
     points_config = PointsConfig.objects.first()
 
     points_earned = 0
     if points_config:
-        points_earned = int(total_order_price * points_config.points_per_baht)  # Calculate points earned
+        points_earned = int(total_order_price * points_config.points_per_baht)  # คำนวณคะแนนที่ได้รับ
 
-    # If the form is submitted, process the payment
+    # หากส่งแบบฟอร์มแล้วให้ดำเนินการชำระเงิน
     if request.method == 'POST':
         payment_method = request.POST.get('payment_method', None)
-        amount_paid = Decimal(request.POST.get('amount_paid', 0))  # Convert amount_paid to Decimal
+        amount_paid = Decimal(request.POST.get('amount_paid', 0))  # แปลง amount_paid เป็นทศนิยม
 
         if not payment_method or not amount_paid:
             messages.error(request, 'กรุณากรอกข้อมูลการชำระเงินให้ครบถ้วน')
@@ -250,13 +249,13 @@ def PayMent(request, order_id):
                 'order': order,
                 'order_details': order_details,
                 'total_order_price': total_order_price,
-                'points_earned': points_earned,  # Pass the points earned to the template
+                'points_earned': points_earned,
             })
 
-        # Calculate change
-        change = amount_paid - total_order_price  # Both operands are Decimal
+        # คำนวณตังค์ทอน
+        change = amount_paid - total_order_price
 
-        # Save the payment details
+        # บันทึกรายละเอียดการชำระเงิน
         Payment.objects.create(
             order=order,
             amount=total_order_price,
@@ -265,7 +264,7 @@ def PayMent(request, order_id):
             store=store,
         )
 
-        # Update customer points if the customer is found
+        # อัปเดตคะแนนลูกค้าหากพบลูกค้าจากเบอร์โทร
         if order.customer_phone:
             try:
                 customer = customerMember.objects.get(phone=order.customer_phone)
@@ -274,14 +273,13 @@ def PayMent(request, order_id):
                 messages.success(request, f'ชำระเงินสำเร็จ! คุณได้รับ {points_earned} แต้ม.')
             except customerMember.DoesNotExist:
                 messages.warning(request, 'ไม่พบข้อมูลลูกค้า')
-
         return redirect('order')
 
     return render(request, 'Payment.html', {
         'order': order,
         'order_details': order_details,
         'total_order_price': total_order_price,
-        'points_earned': points_earned,  # Pass the points earned to the template
+        'points_earned': points_earned,
     })
 @login_required
 def print_receipt(request, order_id):
@@ -303,15 +301,15 @@ def print_receipt(request, order_id):
             'options': selected_options,
         })
         total_order_price += total_item_price
-    # Calculate the total order price
+    # คำนวณราคาสั่งซื้อทั้งหมด
 
-    # Fetch the points configuration (how many points per baht)
+    # ดึงการกำหนดค่าคะแนน (บาทละกี่คะแนน)
     points_config = PointsConfig.objects.first()
     points_earned = 0
     if points_config:
-        points_earned = int(total_order_price * points_config.points_per_baht)  # Calculate points earned
+        points_earned = int(total_order_price * points_config.points_per_baht)  # คำนวณคะแนนที่ได้รับ
 
-    # Render the receipt template and pass the necessary context
+    # แสดงผลเทมเพลตใบเสร็จรับเงินและส่งต่อ context
     return render(request, 'print_receipt.html', {
         'order': order,
         'order_details': order_details,
@@ -328,26 +326,26 @@ def inventory(request):
 
 @login_required
 def History_Order(request):
-    store = request.user.member_profile.store  # Get the store associated with the logged-in user
-    search_query = request.GET.get('search', '')  # Get the search query (Order ID, customer name, etc.)
-    date_filter = request.GET.get('date_filter', '')  # Get the selected date filter (e.g., 'today', 'this_week')
+    store = request.user.member_profile.store  # รับร้านค้าที่เกี่ยวข้องกับผู้ใช้ที่เข้าสู่ระบบ
+    search_query = request.GET.get('search', '')  # รับคำค้นหา (รหัสคำสั่งซื้อ ชื่อลูกค้า ฯลฯ)
+    date_filter = request.GET.get('date_filter', '')  # รับตัวกรองวันที่ที่เลือก (เช่น 'today', 'this_week')
 
-    # Initialize the filter condition for orders
-    orders = Order.objects.filter(store=store, payment__payment_status='Success')  # Default: all successful orders
+    ## เริ่มต้นเงื่อนไขตัวกรองสำหรับคำสั่งซื้อที่สำเร็จ
+    orders = Order.objects.filter(store=store, payment__payment_status='Success')  # ค่าเริ่มต้น: คำสั่งซื้อที่สำเร็จทั้งหมด
 
-    # Apply date filters
+    # ใช้ตัวกรองวันที่
     if date_filter == 'today':
         today = datetime.today().date()
         orders = orders.filter(created_at__date=today)
     elif date_filter == 'this_week':
         today = datetime.today().date()
-        start_of_week = today - timedelta(days=today.weekday())  # Get the start of the week
-        end_of_week = start_of_week + timedelta(days=6)  # Get the end of the week
+        start_of_week = today - timedelta(days=today.weekday())  #เริ่มต้นสัปดาห์
+        end_of_week = start_of_week + timedelta(days=6)  # ท้ายสัปดาห์
         orders = orders.filter(created_at__date__range=[start_of_week, end_of_week])
     elif date_filter == 'this_month':
         today = datetime.today()
-        first_day_of_month = today.replace(day=1)  # Get the first day of the current month
-        last_day_of_month = (first_day_of_month.replace(month=first_day_of_month.month + 1) - timedelta(days=1))  # Last day of the month
+        first_day_of_month = today.replace(day=1)  # รับวันแรกของเดือนปัจจุบัน
+        last_day_of_month = (first_day_of_month.replace(month=first_day_of_month.month + 1) - timedelta(days=1))  #วันสุดท้ายของเดือน
         orders = orders.filter(created_at__date__range=[first_day_of_month.date(), last_day_of_month.date()])
     elif date_filter == 'custom':
         start_date = request.GET.get('start_date', '')
@@ -358,9 +356,9 @@ def History_Order(request):
                 end_date = datetime.strptime(end_date, '%Y-%m-%d')
                 orders = orders.filter(created_at__date__range=[start_date.date(), end_date.date()])
             except ValueError:
-                pass  # If the date format is wrong, ignore the custom date filter
+                pass  # ไม่ต้องทำอะไรถ้าเกิดข้อผิดพลาด
 
-    # Apply search query filter
+    # ใช้คำค้นหา
     if search_query:
         orders = orders.filter(
             Q(id__icontains=search_query) |
@@ -369,9 +367,9 @@ def History_Order(request):
             Q(status__icontains=search_query)
         ).distinct()
 
-    # Pagination: Set the number of orders per page
+    # การแบ่งหน้า
     page_number = request.GET.get('page', 1)
-    paginator = Paginator(orders, 10)  # Show 10 orders per page
+    paginator = Paginator(orders, 10)  # แบ่งคำสั่งซื้อเป็นหน้าละ 10 รายการ
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'History_Order.html', {
@@ -384,7 +382,7 @@ def History_Order(request):
 @login_required
 def update_points_config(request):
     store = request.user.member_profile.store
-    # Only allow admin to access this page
+    # เช็คว่าผู้ใช้ไม่ใช่ผู้ดูแลระบบ
     if not request.user.is_superuser:
         return redirect('home')
     points_config, created = PointsConfig.objects.get_or_create(store=store)
@@ -404,12 +402,12 @@ def update_points_config(request):
     return render(request, 'Member1.html', {'form': form})
 @login_required
 def Member1(request):
-    # Get the PointsConfig instance to pass the form to the template
-    points_config = PointsConfig.objects.first()  # Assuming only one instance exists
+    # ดึงข้อมูลการตั้งค่าแต้ม
+    points_config = PointsConfig.objects.first()  # รับการตั้งค่าแต้มแรกที่พบ
     form = PointsConfigForm(instance=points_config)
     store = request.user.member_profile.store
 
-    # Handle searching for customers
+    #จัดการการค้นหาลูกค้า
     search_query = request.GET.get('search', '')
     if search_query:
         customers = customerMember.objects.filter(
@@ -434,7 +432,7 @@ def Member1(request):
 
     return render(request, 'Member1.html', {
         'customers': customers,
-        'form': form,  # Pass the PointsConfigForm to the template
+        'form': form,
         'search_query': search_query,
     })
 
@@ -517,20 +515,20 @@ def home(request):
 
     total_price = 0
     total_quantity = 0
-    customer_points = 0  # Variable to store customer points
+    customer_points = 0  # ตัวแปรในการเก็บคะแนนลูกค้า
 
     if order:
         total_price = sum(detail.price for detail in order.order_details.all())
         total_quantity = sum(detail.quantity for detail in order.order_details.all())
 
-        # Retrieve the points of the customer
+        # ดึงคะแนนของลูกค้า
         if order.customer_phone:
             try:
-                # Fetch the customer using the phone number
+               # ดึงข้อมูลลูกค้าจากเบอร์โทร
                 customer = customerMember.objects.get(phone=order.customer_phone)
-                customer_points = customer.points  # Get the points of the customer
+                customer_points = customer.points # ดึงคะแนนลูกค้า
             except customerMember.DoesNotExist:
-                customer_points = 0  # If the customer does not exist, set points to 0
+                customer_points = 0  # ถ้าไม่พบข้อมูลลูกค้าให้คะแนนเป็น 0
 
     # ฟอร์มสำหรับกรอกข้อมูลลูกค้า
     form = CustomerInfoForm()
@@ -540,16 +538,16 @@ def home(request):
         # ใช้ .all() เพื่อดึงข้อมูล options ที่เชื่อมโยงกับ product
         product.options_list = [option.name for option in product.options.all()] if product.options.exists() else []
 
-    # Check if order exists and pass it to the template
+    # ส่งข้อมูลไปยัง template
     return render(request, 'home.html', {
         'page_obj': page_obj,
         'query': query,
         'category': category,
         'categories': categories,  # ส่งหมวดหมู่ทั้งหมด
-        'order': order if order else None,  # Ensure order is not None
+        'order': order if order else None,  # ส่งคำสั่งซื้อล่าสุดไปยัง template
         'total_price': total_price,
         'total_quantity': total_quantity,
-        'customer_points': customer_points,  # Pass customer points to the template
+        'customer_points': customer_points,  # ส่งคะแนนลูกค้าไปยัง template
         'form': form,  # ส่งฟอร์มข้อมูลลูกค้า
     })
 
@@ -578,7 +576,8 @@ def search_member(request):
     } for customer in customers]
 
     return JsonResponse({'status': 'success', 'customers': customer_data})
-# Add product to order
+#สั่งสินค้าเพิ่ม
+# myapp/views.py
 @csrf_exempt
 @login_required
 def add_to_order(request):
@@ -589,63 +588,75 @@ def add_to_order(request):
         quantity = data.get('quantity', 1)
 
         try:
-            # Get the product
+            # รับสินค้า
             product = Product.objects.get(id=product_id)
 
-            # Retrieve or create an order for the logged-in user
+            # ดึงหรือสร้างคำสั่งซื้อสำหรับผู้ใช้ที่เข้าสู่ระบบ
             order, created = Order.objects.get_or_create(
                 customer_name=' ',
                 customer_phone=' ',
                 defaults={'total_price': 0}
             )
 
-            # Fetch the selected options from the database
+            # ดึงตัวเลือกที่เลือกจากฐานข้อมูล
             selected_options = Option.objects.filter(name__in=options, product=product)
             total_option_price = sum([option.price for option in selected_options])
 
-            # Calculate the total price with options
+            # คำนวณราคารวมพร้อมตัวเลือก
             total_price = (product.price + total_option_price) * quantity
 
-            # Handle the case where no options are selected (treat it as a single product)
+            # ตรวจสอบวัตถุดิบที่จำเป็นสำหรับผลิตภัณฑ์นี้
+            product_ingredients = ProductIngredient.objects.filter(product=product)
+            for product_ingredient in product_ingredients:
+                required_quantity = product_ingredient.quantity * quantity
+                if product_ingredient.ingredient.stock < required_quantity:
+                    return JsonResponse({'status': 'error', 'message': f'วัตถุดิบ {product_ingredient.ingredient.name} ไม่เพียงพอ'})
+
+            # จัดการกรณีที่ไม่ได้เลือกตัวเลือกใด ๆ (ถือเป็นผลิตภัณฑ์เดียว)
             if not selected_options:
                 order_detail = OrderDetail.objects.filter(
                     order=order,
                     product=product,
-                    options=None  # No options, just the product itself
+                    options=None  # ไม่มีตัวเลือก มีแต่ตัวผลิตภัณฑ์เอง
                 )
             else:
-                # Handle the case where options are selected (treat it as a unique combination)
+                # จัดการกรณีที่เลือกตัวเลือกไว้ (ถือเป็นชุดค่าผสมที่ไม่ซ้ำใคร)
                 order_detail = OrderDetail.objects.filter(
                     order=order,
                     product=product,
                     options__in=selected_options
                 )
 
-            # If no matching order detail exists (with the same options), create a new one
+            # หากไม่มีรายละเอียดคำสั่งซื้อที่ตรงกัน (ด้วยตัวเลือกเดียวกัน) ให้สร้างรายละเอียดใหม่
             if not order_detail.exists():
                 order_detail = OrderDetail.objects.create(
                     order=order,
-                    product=product,  # Ensure that the product is being properly assigned
+                    product=product,  # รับรองว่าสินค้าได้รับมอบหมายอย่างถูกต้อง
                     quantity=quantity,
                     price=total_price
                 )
-                order_detail.options.set(selected_options)  # Set the options for this order item
+                order_detail.options.set(selected_options)  # ตั้งค่าตัวเลือกสำหรับรายการสั่งซื้อนี้
                 order_detail.save()
             else:
-                # If the order detail with the same options exists, just update the quantity and price
+                # หากมีรายละเอียดคำสั่งซื้อที่มีตัวเลือกเดียวกัน เพียงอัปเดตปริมาณและราคา
                 order_detail = order_detail.first()
                 order_detail.quantity += quantity
                 order_detail.price = order_detail.quantity * (product.price + total_option_price)
                 order_detail.save()
 
-            #อัพเดทราคารวมออเดอร์
+            # อัพเดทราคารวมออเดอร์
             order.total_price = sum([item.price for item in order.order_details.all()])
             order.save()
+
+            # อัพเดทปริมาณวัตถุดิบ
+            for product_ingredient in product_ingredients:
+                product_ingredient.ingredient.stock -= product_ingredient.quantity * quantity
+                product_ingredient.ingredient.save()
 
             return JsonResponse({'status': 'success', 'message': 'Product added to order successfully', 'total_price': order.total_price})
 
         except Product.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Product not found'})
+            return JsonResponse({'status': 'error', 'message': 'ไม่พบสินค้า'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
 
@@ -657,32 +668,45 @@ def update_order_detail(request):
         try:
             data = json.loads(request.body)
             order_detail_id = data.get('order_detail_id')
-            quantity = int(data.get('quantity', 1))
+            new_quantity = int(data.get('quantity', 1))
 
-            #ดึงรายละเอียดการสั่งซื้อ
+            #รับรายละเอียดการสั่งซื้อ
             order_detail = get_object_or_404(OrderDetail, id=order_detail_id)
+            old_quantity = order_detail.quantity
 
-            # ดึงตัวเลือกที่เลือกและคำนวณราคาตัวเลือกทั้งหมด
+            # คำนวณความแตกต่างในปริมาณ
+            quantity_diff = new_quantity - old_quantity
+
+            # ตรวจสอบว่าสต็อกเพียงพอสำหรับปริมาณใหม่หรือไม่
+            product_ingredients = ProductIngredient.objects.filter(product=order_detail.product)
+            for product_ingredient in product_ingredients:
+                ingredient = product_ingredient.ingredient
+                if ingredient.stock < product_ingredient.quantity * quantity_diff:
+                    return JsonResponse({'status': 'error', 'message': f'สต็อกไม่เพียงพอสำหรับ {ingredient.name}'})
+
+            # อัพเดตปริมาณวัตถุดิบ
+            for product_ingredient in product_ingredients:
+                ingredient = product_ingredient.ingredient
+                ingredient.stock -= product_ingredient.quantity * quantity_diff
+                ingredient.save()
+
+            # คำนวณราคาใหม่ของรายละเอียดคำสั่งซื้อ
             selected_options = order_detail.options.all()
             total_option_price = sum(option.price for option in selected_options)
+            total_price = (order_detail.product.price + total_option_price) * new_quantity
 
-            # คำนวณราคาใหม่ตามปริมาณและตัวเลือก
-            total_price = (order_detail.product.price + total_option_price) * quantity
-
-            # อัพเดทรายละเอียดการสั่งซื้อจำนวนและราคา
-            order_detail.quantity = quantity
+            order_detail.quantity = new_quantity
             order_detail.price = total_price
             order_detail.save()
 
-            # คำนวณราคารวมของคำสั่งซื้อทั้งหมดอีกครั้ง
-            order_detail.order.total_price = sum([item.price for item in order_detail.order.order_details.all()])
+            # อัพเดตราคารวมของคำสั่งซื้อ
+            order_detail.order.total_price = sum(item.price for item in order_detail.order.order_details.all())
             order_detail.order.save()
 
             return JsonResponse({'status': 'success'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'invalid method'})
-
 
 @login_required
 @csrf_exempt
@@ -692,12 +716,21 @@ def delete_order_detail(request):
             data = json.loads(request.body)
             order_detail_id = data.get('order_detail_id')
 
-            # ตรวจสอบว่า OrderDetail นี้มีอยู่ในระบบหรือไม่
+            # ดึงรายละเอียดคำสั่งซื้อ
             order_detail = get_object_or_404(OrderDetail, id=order_detail_id)
+
+            # อัพเดตปริมาณวัตถุดิบ
+            product_ingredients = ProductIngredient.objects.filter(product=order_detail.product)
+            for product_ingredient in product_ingredients:
+                ingredient = product_ingredient.ingredient
+                ingredient.stock += product_ingredient.quantity * order_detail.quantity
+                ingredient.save()
+
+            # ลบรายละเอียดคำสั่งซื้อ
             order_detail.delete()
 
-            # อัปเดตราคาทั้งหมดของคำสั่งซื้อ
-            order_detail.order.total_price = sum([item.price for item in order_detail.order.order_details.all()])
+            # อัพเดตราคารวมของคำสั่งซื้อ
+            order_detail.order.total_price = sum(item.price for item in order_detail.order.order_details.all())
             order_detail.order.save()
 
             return JsonResponse({'status': 'success'})
@@ -711,19 +744,19 @@ def add_product(request):
         form = ProductForm(request.POST, request.FILES)  # รับข้อมูลแบบฟอร์ม (รวมถึงตัวเลือก)
         if form.is_valid():
             product = form.save(commit=False)
-            store = request.user.member_profile.store  # Get the store associated with the user
-            product.store = store  # Associate product with the user's store
+            store = request.user.member_profile.store  # รับร้านค้าที่เกี่ยวข้องกับผู้ใช้
+            product.store = store  # เชื่อมโยงสินค้ากับร้านค้า
             product.save()
             option_names = request.POST.getlist('option_name[]')
             option_prices = request.POST.getlist('option_price[]')
             for name, price in zip(option_names, option_prices):
                 Option.objects.create(product=product, name=name, price=price)
 
-            messages.success(request, 'Product added successfully!')
+            messages.success(request, 'เพิ่มสินค้าเรียบร้อยแล้ว!')
             return redirect('add_product')  # เปลี่ยนเส้นทางหลังจากส่งแบบฟอร์มสำเร็จ
         else:
-            print("Form is not valid", form.errors)
-            messages.error(request, 'Form is not valid.')
+            print("แบบฟอร์มไม่ถูกต้อง", form.errors)
+            messages.error(request, 'แบบฟอร์มไม่ถูกต้อง')
     else:
         form = ProductForm()
 
@@ -753,7 +786,7 @@ def edit_product(request, product_id):
                     price=price
                 )
 
-            messages.success(request, 'Product updated successfully!')
+            messages.success(request, 'อัพเดทสินค้าเรียบร้อยแล้ว!')
             return redirect('addmenu')  # เปลี่ยนเส้นทางหลังจากส่งแบบฟอร์มสำเร็จ
     else:
         product_form = ProductForm(instance=product)
@@ -779,7 +812,7 @@ def edit_product(request, product_id):
 def delete_product(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     product.delete()
-    messages.success(request, 'Product deleted successfully!')
+    messages.success(request, 'ลบผลิตภัณฑ์เรียบร้อยแล้ว!')
     return redirect('addmenu')
 
 
@@ -792,11 +825,11 @@ def add_category(request):
             category_name = data.get('category_name')
 
             if not category_name:
-                return JsonResponse({'status': 'error', 'message': 'Category name is required'})
+                return JsonResponse({'status': 'error', 'message': 'ต้องระบุชื่อหมวดหมู่'})
             store = request.user.member_profile.store
             # ตรวจสอบว่ามีหมวดหมู่อยู่แล้วหรือไม่
             if Category.objects.filter(name=category_name, store=store).exists():
-                return JsonResponse({'status': 'error', 'message': 'Category already exists'})
+                return JsonResponse({'status': 'error', 'message': 'มีหมวดหมู่อยู่แล้ว'})
 
             # สร้างหมวดหมู่ใหม่
             category = Category.objects.create(name=category_name, store=store)
@@ -805,3 +838,154 @@ def add_category(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'invalid method'})
+
+@login_required
+def manage_ingredients(request):
+    store = request.user.member_profile.store
+    ingredients = Ingredient.objects.filter(store=store)  # ดึงข้อมูลวัตถุดิบทั้งหมดจากฐานข้อมูล
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(ingredients, 10)  # Show 10 ingredients per page
+    page_obj = paginator.get_page(page_number)
+
+    if request.method == 'POST':
+        ingredient_id = request.POST.get('ingredient_id')  # รับ ingredient_id ที่ส่งมาจากฟอร์ม
+        ingredient = Ingredient.objects.get(id=ingredient_id)
+        ingredient.check_reorder()  # เช็คว่าเป็นวัตถุดิบที่ต้องเติมหรือไม่
+        return redirect('manage_ingredients')  # รีเฟรชหน้าเมื่อทำการอัปเดต
+    return render(request, 'manage_ingredients.html', {'ingredients': ingredients,'page_obj': page_obj})
+
+@login_required
+def add_ingredient(request):
+    store = request.user.member_profile.store
+    if request.method == 'POST':
+        form = IngredientOrderForm(request.POST)
+        if form.is_valid():
+            ingredient = form.save(commit=False)
+            ingredient.store = store
+            ingredient.save()
+            messages.success(request, 'วัตถุดิบถูกเพิ่มแล้ว!')
+            return redirect('manage_ingredients')
+        else:
+            messages.error(request, 'กรุณากรอกข้อมูลให้ครบถ้วน')
+    return redirect('manage_ingredients')
+def edit_ingredient(request, ingredient_id):
+    ingredient = get_object_or_404(Ingredient, id=ingredient_id)
+    if request.method == 'POST':
+        form = IngredientOrderForm(request.POST, instance=ingredient)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'ข้อมูลวัตถุดิบถูกอัปเดตแล้ว!')
+            return redirect('manage_ingredients')
+    else:
+        form = IngredientOrderForm(instance=ingredient)
+    return render(request, 'manage_ingredient_edit.html', {'form': form, 'ingredient': ingredient})
+@login_required
+def delete_ingredient(request, ingredient_id):
+    ingredient = get_object_or_404(Ingredient, id=ingredient_id)
+    ingredient.delete()
+    messages.success(request, 'ลบส่วนผสมของสินค้าเรียบร้ายแล้ว!')
+    return redirect('manage_ingredients')
+
+
+@login_required
+def manage_product_ingredients(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+
+    # รับร้านค้าที่เกี่ยวข้องกับผู้ใช้ที่เข้าสู่ระบบ
+    store = request.user.member_profile.store
+
+    # รับ ProductIngredients ทั้งหมดสำหรับผลิตภัณฑ์ที่กำหนด
+    ingredients = ProductIngredient.objects.filter(product=product)
+
+    # รับผลิตภัณฑ์ที่เป็นของร้านค้าสำหรับเมนูแบบเลื่อนลงที่เลือก
+    products = Product.objects.filter(store=store)
+    ingredients_list = Ingredient.objects.filter(store=store)
+
+    if request.method == "POST":
+        # สร้างแบบฟอร์มด้วยข้อมูล POST
+        form = ProductIngredientForm(request.POST)
+
+        # ตรวจสอบให้แน่ใจว่าผลิตภัณฑ์ที่เลือกมาจากร้านค้าที่ถูกต้อง
+        form.instance.product = product
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'เพิ่มส่วนผสมสินค้าเรียบร้อยแล้ว')
+            return redirect('manage_product_ingredients', product_id=product.id)
+        else:
+            messages.error(request, 'เกิดข้อผิดพลาดในการเพิ่มส่วนผสมของสินค้า')
+
+    else:
+        # เริ่มต้นแบบฟอร์มเปล่า
+        form = ProductIngredientForm()
+
+    return render(request, 'manage_product_ingredients.html', {
+        'product': product,
+        'form': form,
+        'ingredients': ingredients,
+        'products': products,
+        'ingredients_list': ingredients_list,
+    })
+
+
+@login_required
+def delete_product_ingredient(request, ingredient_id):
+    ingredient = get_object_or_404(ProductIngredient, id=ingredient_id)
+    ingredient.delete()
+    messages.success(request, 'ลบส่วนผสมของผลิตภัณฑ์เรียบร้อยแล้ว')
+    return redirect('manage_product_ingredients', product_id=ingredient.product.id)
+
+
+@login_required
+def edit_product_ingredient(request, ingredient_id):
+    # รับร้านค้าของผู้ใช้ที่เข้าสู่ระบบ
+    store = request.user.member_profile.store
+    product_ingredient = get_object_or_404(ProductIngredient, id=ingredient_id)
+
+    # ดึงผลิตภัณฑ์ทั้งหมดจากร้านค้าของผู้ใช้ (เกี่ยวข้องกับส่วนผสมของสินค้า)
+    products = Product.objects.filter(store=store)
+    ingredients_list = Ingredient.objects.filter(store=store)
+
+    # ประมวลผลคำขอ POST เพื่ออัปเดต ProductIngredient
+    if request.method == 'POST':
+        form = ProductIngredientForm(request.POST, instance=product_ingredient)
+
+        if form.is_valid():
+            form.save()  # บันทึก ProductIngredient ที่อัปเดตแล้ว
+            messages.success(request, 'อัพเดทส่วนผสมสินค้าสำเร็จแล้ว.')
+            return redirect('manage_product_ingredients', product_id=product_ingredient.product.id)
+        else:
+            messages.error(request, 'เกิดข้อผิดพลาดในการอัปเดตส่วนผสมของสินค้า')
+    else:
+        # หากไม่ใช่คำขอ POST ให้เริ่มต้นแบบฟอร์มด้วยข้อมูลที่มีอยู่
+        form = ProductIngredientForm(instance=product_ingredient)
+
+    return render(request, 'edit_product_ingredient.html', {
+        'form': form,
+        'product_ingredient': product_ingredient,
+        'products': products,
+        'ingredients_list': ingredients_list,
+    })
+
+
+@login_required
+def manage_product_ingredient_list(request):
+    # รับร้านค้าที่เกี่ยวข้องกับผู้ใช้ที่เข้าสู่ระบบ
+    store = request.user.member_profile.store
+
+    # ดึงข้อมูลผลิตภัณฑ์ทั้งหมดที่เป็นของร้านค้าของผู้ใช้
+    product_ingredients_list = Product.objects.filter(store=store)
+
+    # สำหรับแต่ละผลิตภัณฑ์ให้นำส่วนผสมมาด้วย
+    product_with_ingredients = []
+    for product in product_ingredients_list:
+        # รับส่วนผสมที่เกี่ยวข้องกับผลิตภัณฑ์นี้
+        ingredients = ProductIngredient.objects.filter(product=product)
+        product_with_ingredients.append({
+            'product': product,
+            'ingredients': ingredients
+        })
+
+    return render(request, 'manage_product_ingredient_list.html', {
+        'product_with_ingredients': product_with_ingredients
+    })

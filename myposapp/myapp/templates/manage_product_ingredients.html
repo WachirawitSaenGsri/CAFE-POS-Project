@@ -1,0 +1,93 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% tailwind_css %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Ingredients</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-kanit">
+
+{% include 'component/sidebar.html' %}
+{% include 'component/navbar.html' %}
+
+  <div class="container mx-auto p-6">
+      <!-- Back Button -->
+    <div class="mb-4">
+      <a href="{% url 'manage_product_ingredients_list'%}" class="ml-20 bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">
+        ย้อนกลับ
+      </a>
+    </div>
+    <!-- Title -->
+    <h1 class="text-3xl font-semibold text-gray-800 mb-4 ml-20">จัดการส่วนผสมสำหรับ <span class="text-blue-500">{{ product.product_name }}</span></h1>
+  
+    <!-- Add Product Ingredient Form -->
+    <div class="bg-white p-8 rounded-lg shadow-md mb-6 ml-20">
+      <h2 class="text-2xl font-semibold text-gray-800 mb-6">เพิ่มส่วนผสมใหม่ให้กับโปรดักส์นี้</h2>
+      <form method="POST">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label for="product" class="block text-sm font-medium text-gray-700">เลือกเมนู</label>
+          <select name="product" id="product" class="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+            {% for product in products %}
+              <option value="{{ product.id }}" {% if product.id == form.product.value %} selected {% endif %}>{{ product.product_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <!-- Form Fields -->
+        <div class="mb-4">
+          <label for="ingredient" class="block text-sm font-medium text-gray-700">เลือกวัตถุดิบ</label>
+          <select name="ingredient" id="ingredient" class="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+            {% for ingredient in ingredients_list %}
+              <option value="{{ ingredient.id }}" {% if ingredient.id == form.ingredient.value %} selected {% endif %}>{{ ingredient.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-6">
+          <label for="quantity" class="block text-sm font-medium text-gray-700">ปริมาณ</label>
+          <input type="number" name="quantity" value="{{ form.quantity.value }}" class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white py-3 px-8 rounded-lg shadow-md mt-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">เพิ่มวัตถุดิบ</button>
+      </form>
+    </div>
+
+    <!-- Product Ingredients List -->
+    <h2 class="text-2xl font-semibold text-gray-700 mb-4 ml-20">ส่วนผสมโปรดักส์นี้</h2>
+    <div class="overflow-x-auto bg-white shadow-md rounded-lg ml-20">
+      <table class="min-w-full table-auto border-collapse">
+        <thead>
+          <tr class="bg-blue-600 text-white text-center">
+            <th class="px-6 py-4 text-lg">วัตถุดิบ</th>
+            <th class="px-6 py-4 text-lg">ปริมาณ</th>
+            <th class="px-6 py-4 text-lg">ปุ่ม</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in ingredients %}
+            <tr class="border-b hover:bg-gray-50 text-center">
+              <td class="px-6 py-4 text-gray-800">{{ item.ingredient.name }}</td>
+              <td class="px-6 py-4 text-gray-600">{{ item.quantity }} {{ item.ingredient.unit }}</td>
+              <td class="px-6 py-4 space-x-2">
+                <a href="{% url 'edit_product_ingredient' item.id %}" class="text-blue-500 hover:text-blue-700">Edit</a> |
+                <a href="{% url 'delete_product_ingredient' item.id %}" class="text-red-500 hover:text-red-700">Delete</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
+

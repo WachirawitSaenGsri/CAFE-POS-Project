@@ -3,6 +3,19 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import *
 
+class IngredientOrderForm(forms.ModelForm):
+    class Meta:
+        model = Ingredient
+        fields = ['name', 'stock', 'unit', 'reorder_level']
+
+class ProductIngredientForm(forms.ModelForm):
+    class Meta:
+        model = ProductIngredient
+        fields = ['product', 'ingredient', 'quantity']
+        widgets = {
+            'quantity': forms.NumberInput(attrs={'min': 0, 'step': 'any'})  # จำกัดให้กรอกแค่ตัวเลข
+        }
+
 class CustomerMemberForm(forms.ModelForm):
     class Meta:
         model = customerMember

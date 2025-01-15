@@ -53,7 +53,7 @@
                         <p class="text-yellow-500 font-bold mt-2">{{ product.price }} ฿</p>
 
                         {% if product.is_low_stock %}
-                        <p class="text-red-500 text-sm font-semibold mt-2">สินค้าใกล้หมดแล้ว</p>
+                        <p class="text-red-500 text-sm font-semibold mt-2">จำเป็นต้องเติมสต๊อก</p>
                         {% endif %}
 
                         <div class="mt-2">
@@ -94,7 +94,6 @@
 <!-- Customer Search Box -->
 <div class="mb-4 flex items-center gap-4 relative">
     <input type="text" id="customer-search" placeholder="ค้นหาสมาชิกจาก ชื่อ เบอร์โทร..." class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" />
-
 </div>
 
 <ul id="customer-list" class="hidden bg-white border border-gray-300 rounded-lg shadow-lg absolute z-10 mt-24 w-1/4 max-h-60 overflow-auto">
@@ -179,9 +178,12 @@
 <div id="modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 hidden">
     <div class="flex justify-center items-center min-h-screen">
         <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-            <div id="modal-message" class="text-center">
-                <p class="text-xl font-semibold text-gray-700">เพิ่มสินค้าเพื่อสั่งซื้อเรียบร้อยแล้ว!</p>
-                <p id="modal-text" class="text-gray-600 mt-4">เพิ่มโปรดักส์ลงในคำสั่งซื้อเรียบร้อยแล้ว</p>
+            <div id="modal-message" class="text-center"></div>
+            <div class="text-center mt-4">
+                <button class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md"
+                        onclick="document.getElementById('modal').classList.add('hidden')">
+                    ปิด
+                </button>
             </div>
         </div>
     </div>
@@ -211,7 +213,6 @@
         </nav>
     </div>
 </div>
-
 <script>
 document.querySelectorAll('.option-btn').forEach(button => {
     button.addEventListener('click', function() {
@@ -231,6 +232,7 @@ document.querySelectorAll('.add-to-order-btn').forEach(button => {
 
         const productId = this.getAttribute('data-product-id');  // รับค่า product ID
         const price = this.getAttribute('data-price');  // รับราคาพื้นฐานของสินค้าที่เลือก
+        const quantity = 1;
 
         // สร้าง array สำหรับเก็บตัวเลือกที่เลือก
         const selectedOptions = [];
@@ -251,7 +253,7 @@ document.querySelectorAll('.add-to-order-btn').forEach(button => {
             body: JSON.stringify({
                 product_id: productId,
                 options: selectedOptions,  // ตัวเลือกที่เลือก
-                quantity: 1  // จำนวนสินค้าตั้งต้นเป็น 1 (หรือสามารถปรับจาก UI ได้)
+                quantity: quantity  // จำนวนสินค้าตั้งต้นเป็น 1 (หรือสามารถปรับจาก UI ได้)
             })
         })
         .then(response => response.json())  // แปลงผลลัพธ์จาก JSON
@@ -263,7 +265,7 @@ document.querySelectorAll('.add-to-order-btn').forEach(button => {
                     window.location.reload(); // รีโหลดหน้า
                 }, 300);
             } else {
-                showModal('Error', 'เกิดข้อผิดพลาดในการเพิ่มสินค้าลงในคำสั่งซื้อ');
+                showModal('Error', data.message);
             }
 
             this.disabled = false;
@@ -271,7 +273,7 @@ document.querySelectorAll('.add-to-order-btn').forEach(button => {
         })
         .catch(error => {
             console.log(error);
-            showModal('Error', 'เกิดข้อผิดพลาดในการเพิ่มสินค้าลงในคำสั่งซื้อ');
+            showModal('Error', data.message);
             this.disabled = false;
             this.innerText = 'Add to Order';  // รีเซ็ตข้อความปุ่มในกรณีที่เกิดข้อผิดพลาด
         });
@@ -317,12 +319,13 @@ document.querySelectorAll('.update-quantity').forEach(button => {
                 quantityElement.innerText = quantity;
                 window.location.reload();
             } else {
-                console.error(data.message);
+                showModal('Error', data.message);  // Show modal with error message
             }
         })
         .catch(error => console.log(error));
     });
 });
+
 
 // Delete item from cart
 document.querySelectorAll('.delete-order-detail').forEach(button => {

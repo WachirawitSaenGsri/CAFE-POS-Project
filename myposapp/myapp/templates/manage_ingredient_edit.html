@@ -1,0 +1,72 @@
+{# manage_ingredient_edit.html #}
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% tailwind_css %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAFE POS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-kanit">
+
+  <div class="container mx-auto p-8">
+    <!-- Title Section -->
+    <h1 class="text-3xl font-semibold text-gray-800 mb-6">แก้ไขส่วนผสมของโปรดักส์</h1>
+
+    <!-- Ingredient Details -->
+    <div class="mb-6">
+      <h2 class="text-xl font-medium text-gray-700">วัตถุดิบ: <span class="text-green-500">{{ ingredient.name }}</span></h2>
+    </div>
+
+    <!-- Edit Ingredient Form -->
+    <div class="bg-white p-8 rounded-lg shadow-lg border border-gray-200">
+      <form method="POST">
+        {% csrf_token %}
+        
+        <!-- Name Field -->
+        <div class="mb-4">
+          <label for="name" class="block text-sm font-medium text-gray-700">ชื่อวัตถุดิบ</label>
+          <input type="text" name="name" id="name" value="{{ form.name.value }}" class="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" required>
+        </div>
+        
+        <!-- Stock Field -->
+        <div class="mb-4">
+          <label for="stock" class="block text-sm font-medium text-gray-700">สต็อก</label>
+          <input type="number" name="stock" id="stock" value="{{ form.stock.value }}" class="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" min="0" step="any" required>
+        </div>
+
+        <!-- Unit Field -->
+        <div class="mb-4">
+          <label for="unit" class="block text-sm font-medium text-gray-700">หน่วย</label>
+          <input type="text" name="unit" id="unit" value="{{ form.unit.value }}" class="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" required>
+        </div>
+
+        <!-- Reorder Level Field -->
+        <div class="mb-4">
+          <label for="reorder_level" class="block text-sm font-medium text-gray-700">ระดับการสั่งซื้อใหม่</label>
+          <input type="number" name="reorder_level" id="reorder_level" value="{{ form.reorder_level.value }}" class="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" min="0" step="any" required>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end">
+          <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-lg shadow-md mt-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">บันทึกการแก้ไข</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Cancel Link -->
+    <div class="mt-6">
+      <a href="{% url 'manage_ingredients' %}" class="inline-block bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">ยกเลิก</a>
+    </div>
+  </div>
+
+</body>
+</html>
