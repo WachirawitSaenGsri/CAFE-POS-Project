@@ -13,8 +13,8 @@ from .forms import *
 from django.db import transaction
 from myapp.models import *
 from datetime import datetime, timedelta
-
-
+from django.db.models import Sum, Count, Avg
+from django.db.models.functions import TruncMonth, TruncYear
 def user_login(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -318,11 +318,85 @@ def print_receipt(request, order_id):
     })
 @login_required
 def Marketing(request):
-    return render(request, 'Marketing.html')
+    store = request.user.member_profile.store
+    filter_by = request.GET.get('filter', 'all')  # ตัวกรองเริ่มต้น
+    start_date = request.GET.get('start_date')  # วันที่เริ่มต้น
+    end_date = request.GET.get('end_date')  # วันที่สิ้นสุด
+    today = datetime.today()
 
-@login_required
-def inventory(request):
-    return render(request, 'inventory.html')
+    # ตั้งค่าวันที่เริ่มต้นตามตัวกรอง
+    if filter_by == 'day':
+        start_date = today
+    elif filter_by == 'week':
+        start_date = today - timedelta(days=today.weekday())
+    elif filter_by == 'month':
+        start_date = today.replace(day=1)
+
+    # แปลงวันที่จาก string เป็น datetime object
+    if start_date and isinstance(start_date, str):
+        start_date = datetime.strptime(start_date, "%Y-%m-%d")
+    if end_date and isinstance(end_date, str):
+        end_date = datetime.strptime(end_date, "%Y-%m-%d")
+
+    # ดึงคำสั่งซื้อตามเงื่อนไข
+    if start_date and end_date:
+        orders = Order.objects.filter(store=store, created_at__date__range=[start_date, end_date])
+    elif start_date:
+        orders = Order.objects.filter(store=store, created_at__date__gte=start_date)
+    else:
+        orders = Order.objects.filter(store=store)
+
+    # คำนวณสถิติการขาย
+    total_orders = orders.count()
+    total_revenue = orders.aggregate(Sum('total_price'))['total_price__sum'] or 0
+    average_order_value = total_revenue / total_orders if total_orders > 0 else 0
+
+    # รายการขายดีที่สุด
+    best_selling_items = OrderDetail.objects.filter(order__store=store, order__in=orders).values(
+        'product__product_name'
+    ).annotate(
+        total_sales=Sum('quantity')
+    ).order_by('-total_sales')
+
+    best_selling_item = best_selling_items[0]['product__product_name'] if best_selling_items else "No Sales"
+
+    # รายการขายรายเดือน
+    monthly_revenue = (
+        orders.annotate(month=TruncMonth('created_at'))
+        .values('month')
+        .annotate(total_revenue=Sum('total_price'))
+        .order_by('month')
+    )
+    months = [sale['month'].strftime("%B %Y") for sale in monthly_revenue if sale['month']]
+    revenue_by_month = [float(sale['total_revenue']) for sale in monthly_revenue]
+
+    # รายการขายดีที่สุดตามหมวดหมู่
+    category_sales = (
+        OrderDetail.objects.filter(order__store=store, order__in=orders)
+        .values('product__category__name')
+        .annotate(total_sales=Sum('quantity'))
+        .order_by('-total_sales')
+    )
+    top_categories = [item['product__category__name'] for item in category_sales if item['product__category__name']]
+    sales_by_category = [int(item['total_sales']) for item in category_sales]
+
+    context = {
+        'total_orders': total_orders,
+        'total_revenue': total_revenue,
+        'average_order_value': round(average_order_value, 2),
+        'best_selling_item': best_selling_item,
+        'menu_names': [item['product__product_name'] for item in best_selling_items[:5]],
+        'menu_sales': [item['total_sales'] for item in best_selling_items[:5]],
+        'filter_by': filter_by,
+        'start_date': start_date.strftime("%Y-%m-%d") if start_date else '',
+        'end_date': end_date.strftime("%Y-%m-%d") if end_date else '',
+        'months': months,
+        'revenue_by_month': revenue_by_month,
+        'top_categories': top_categories,
+        'sales_by_category': sales_by_category,
+    }
+    return render(request, 'Marketing.html', context)
+
 
 @login_required
 def History_Order(request):
@@ -989,3 +1063,4 @@ def manage_product_ingredient_list(request):
     return render(request, 'manage_product_ingredient_list.html', {
         'product_with_ingredients': product_with_ingredients
     })
+

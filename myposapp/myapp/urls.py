@@ -14,7 +14,6 @@ urlpatterns = [
     path('order/', views.Order1, name='order'),
     path('payment/<int:order_id>/', views.PayMent, name='payment'),
     path('marketing/', views.Marketing, name='Marketing'),
-    path('inventory/', views.inventory, name='inventory'),
     path('history/', views.History_Order, name='History_Order'),
     path('member/', views.Member1, name='member'),
     path('edit_member/<int:member_id>/', views.edit_member, name='edit_member'),

@@ -1,10 +1,198 @@
+{% load static tailwind_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% tailwind_css %}
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAFE POS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+        }
+            .hidden {
+        display: none;
+    }
+    </style>
 </head>
-<body>
-<h3>ยังไม่มีอะไร</h3>
+<body class="bg-gray-100 font-kanit">
+{% include 'component/sidebar.html' %}
+{% include 'component/navbar.html' %}
+<div class="container mx-auto mt-10 p-4">
+    <!-- Header -->
+    <header class="bg-white rounded-lg shadow-md p-6 ml-20">
+        <h1 class="text-2xl font-bold text-gray-800">Marketing Dashboard</h1>
+        <p class="text-gray-600 mt-2">ข้อมูลการตลาด</p>
+    </header>
+
+    <!-- Filter Buttons -->
+<div class="mt-6 ml-20">
+    <form method="GET" class="flex space-x-4 items-center">
+        <div>
+            <label for="start_date" class="text-gray-700">Start Date:</label>
+            <input type="date" id="start_date" name="start_date" value="{{ start_date }}"
+                   class="px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+            <label for="end_date" class="text-gray-700">End Date:</label>
+            <input type="date" id="end_date" name="end_date" value="{{ end_date }}"
+                   class="px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+            <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
+                Apply
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Filter Buttons -->
+<div class="flex space-x-4 mt-4 ml-20">
+    <a href="?filter=all" class="px-4 py-2 rounded-md {% if filter_by == 'all' %}bg-blue-500 text-white{% else %}bg-gray-300 text-gray-800{% endif %}">All Time</a>
+    <a href="?filter=month" class="px-4 py-2 rounded-md {% if filter_by == 'month' %}bg-blue-500 text-white{% else %}bg-gray-300 text-gray-800{% endif %}">เดือนนี้</a>
+    <a href="?filter=week" class="px-4 py-2 rounded-md {% if filter_by == 'week' %}bg-blue-500 text-white{% else %}bg-gray-300 text-gray-800{% endif %}">สัปดาห์นี้</a>
+    <a href="?filter=day" class="px-4 py-2 rounded-md {% if filter_by == 'day' %}bg-blue-500 text-white{% else %}bg-gray-300 text-gray-800{% endif %}">วันนี้</a>
+</div>
+
+    <!-- Summary Section -->
+    <section class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-6 ml-20">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-bold text-gray-800">คำสั่งซื้อทั้งหมด</h3>
+            <p class="text-3xl font-semibold text-green-600">{{ total_orders }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-bold text-gray-800">ราคาเฉลี่ยต่อการสั่งซื้อ</h3>
+            <p class="text-3xl font-semibold text-blue-600">฿{{ average_order_value }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-bold text-gray-800">รายได้รวม</h3>
+            <p class="text-3xl font-semibold text-purple-600">฿{{ total_revenue }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-bold text-gray-800">เมนูขายดี</h3>
+            <p class="text-3xl font-semibold text-red-600">{{ best_selling_item }}</p>
+        </div>
+    </section>
+
+    <!-- Chart Section -->
+    <section class="bg-white rounded-lg shadow-md p-6 mt-6 ml-20">
+        <h2 class="text-xl font-bold text-gray-800">เมนูขายดี</h2>
+        <p class="text-gray-600">แสดงกราฟเมนูขายดีของร้าน</p>
+        <div class="mt-6">
+            <canvas id="bestSellingChart"></canvas>
+        </div>
+    </section>
+<!-- Monthly Revenue Chart -->
+<section class="bg-white rounded-lg shadow-md p-6 mt-6 ml-20">
+    <h2 class="text-xl font-bold text-gray-800">รายได้ต่อเดือน</h2>
+    <p class="text-gray-600">แสดงกราฟรายได้ต่อเดือนของร้าน</p>
+    <div class="mt-6">
+        <canvas id="monthlyRevenueChart"></canvas>
+    </div>
+</section>
+
+<!-- Top-Selling Categories Chart -->
+<section class="bg-white rounded-lg shadow-md p-6 mt-6 ml-20">
+    <h2 class="text-xl font-bold text-gray-800">หมวดหมู่ที่มียอดขายสูงสุด</h2>
+    <p class="text-gray-600">แสดงกราฟหมวดหมู่ที่มียอดขายสูงสุด</p>
+    <div class="mt-6">
+        <canvas id="topCategoriesChart"></canvas>
+    </div>
+</section>
+</div>
+<script>
+    // Top-Selling Menu Items Chart
+    const labels = {{ menu_names|safe }};
+    const data = {
+        labels: labels,
+        datasets: [{
+            label: 'Sales Count',
+            data: {{ menu_sales|safe }},
+            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        }]
+    };
+
+    const config = {
+        type: 'bar',
+        data: data,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                title: { display: true, text: 'เมนูขายดี' }
+            },
+            scales: {
+                x: { title: { display: true, text: 'รายการเมนู' } },
+                y: { title: { display: true, text: 'จำนวนการขาย' } },
+            },
+        },
+    };
+
+    new Chart(document.getElementById('bestSellingChart'), config);
+
+    const monthlyLabels = {{ months|default:"[]"|safe }};
+const monthlyRevenueData = {
+    labels: monthlyLabels,
+    datasets: [{
+        label: 'Revenue (฿)',
+        data: {{ revenue_by_month|default:"[]"|safe }},
+        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1
+    }]
+};
+
+const monthlyRevenueConfig = {
+    type: 'line',
+    data: monthlyRevenueData,
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: true },
+            title: { display: true, text: 'ได้ต่อเดือนของร้าน' }
+        },
+        scales: {
+            x: { title: { display: true, text: 'เดือน' } },
+            y: { title: { display: true, text: 'รายได้ (฿)' } },
+        },
+    },
+};
+
+new Chart(document.getElementById('monthlyRevenueChart'), monthlyRevenueConfig);
+const categoryLabels = {{ top_categories|default:"[]"|safe }};
+const categoryData = {
+    labels: categoryLabels,
+    datasets: [{
+        label: 'Sales Count',
+        data: {{ sales_by_category|default:"[]"|safe }},
+        backgroundColor: 'rgba(153, 102, 255, 0.5)',
+        borderColor: 'rgba(153, 102, 255, 1)',
+        borderWidth: 1
+    }]
+};
+
+const categoryConfig = {
+    type: 'bar',
+    data: categoryData,
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: true },
+            title: { display: true, text: 'หมวดหมู่ที่มียอดขายสูงสุด' }
+        },
+        scales: {
+            x: { title: { display: true, text: 'หมวดหมู่' } },
+            y: { title: { display: true, text: 'จำนวนการขาย' } },
+        },
+    },
+};
+
+new Chart(document.getElementById('topCategoriesChart'), categoryConfig);
+</script>
 </body>
 </html>
