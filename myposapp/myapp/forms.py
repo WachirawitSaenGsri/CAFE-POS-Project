@@ -3,6 +3,11 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import *
 
+
+class PromotionForm(forms.ModelForm):
+    class Meta:
+        model = Promotion
+        fields = ['name', 'discount_percentage', 'start_date', 'end_date']
 class IngredientOrderForm(forms.ModelForm):
     class Meta:
         model = Ingredient

@@ -62,7 +62,7 @@
 
     <div class="container mx-auto p-6">
         <h1 class="text-2xl font-bold mb-4 ml-20">การชำระเงินสำหรับ Order #{{ order.id }}</h1>
-        <p class="text-lg mb-4 ml-20">จำนวนเงินทั้งหมด: <strong>{{ total_order_price }} ฿</strong></p>
+        <p class="text-lg mb-4 ml-20">จำนวนเงินทั้งหมด: <strong>{{ total_order_price |floatformat:2}} ฿</strong></p>
         <p class="ml-20 mb-1"><strong>ชื่อลูกค้า: </strong>{{ order.customer_name }}</p>
         <p class="ml-20 mb-4"><strong>เบอร์โทรศัพท์: </strong>{{ order.customer_phone }}</p>
 
@@ -94,8 +94,8 @@
                             {% endif %}
                         </td>
                         <td class="py-2 px-4 text-sm">{{ detail.quantity }}</td>
-                        <td class="py-2 px-4 text-sm">{{ detail.unit_price }} ฿</td>
-                        <td class="py-2 px-4 text-sm">{{ detail.total_item_price }} ฿</td>
+                        <td class="py-2 px-4 text-sm">{{ detail.unit_price|floatformat:2 }} ฿</td>
+                        <td class="py-2 px-4 text-sm">{{ detail.total_item_price |floatformat:2}} ฿</td>
                     </tr>
                     {% empty %}
                         <tr>
@@ -105,7 +105,7 @@
                     </tbody>
                 </table>
                 <div class="mt-4 text-left font-semibold">
-                    <p>ราคาสั่งซื้อทั้งหมด: <strong>{{ total_order_price }} ฿</strong></p>
+                    <p>ราคาสั่งซื้อทั้งหมด: <strong>{{ total_order_price |floatformat:2}} ฿</strong></p>
                     <p>แต้มที่ได้รับ: <strong>{{ points_earned }} แต้ม</strong></p>
                 </div>
             </div>

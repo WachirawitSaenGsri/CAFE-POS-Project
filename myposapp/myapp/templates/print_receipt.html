@@ -41,8 +41,8 @@
                             {% endif %}
                         </td>
                         <td class="border border-gray-300 px-4 py-2 text-sm">{{ detail.quantity }}</td>
-                        <td class="border border-gray-300 px-4 py-2 text-sm">{{ detail.unit_price }} ฿</td>
-                        <td class="border border-gray-300 px-4 py-2 text-sm">{{ detail.total_item_price }} ฿</td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm">{{ detail.unit_price|floatformat:2 }} ฿</td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm">{{ detail.total_item_price|floatformat:2 }} ฿</td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -54,7 +54,7 @@
         </div>
 
         <div class="text-right font-semibold mt-4">
-            <p class="text-lg">ราคาสั่งซื้อทั้งหมด: <strong>{{ total_order_price }} ฿</strong></p>
+            <p class="text-lg">ราคาสั่งซื้อทั้งหมด: <strong>{{ total_order_price|floatformat:2 }} ฿</strong></p>
             <p class="text-lg">แต้มที่ได้รับ: <strong>{{ points_earned }} แต้ม</strong></p>
         </div>
 

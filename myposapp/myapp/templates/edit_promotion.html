@@ -1,0 +1,87 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% tailwind_css %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แก้ไขโปรโมชัน</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-kanit">
+    <div class="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <!-- Card Container -->
+        <div class="w-full max-w-md bg-white rounded-lg shadow-lg p-6">
+            <!-- Header -->
+            <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">แก้ไขโปรโมชัน</h1>
+
+            <!-- Form -->
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+
+                <!-- Promotion Name -->
+                <div>
+                    <label for="id_name" class="block text-sm font-medium text-gray-700">ชื่อโปรโมชัน</label>
+                    <input type="text" id="id_name" name="name" value="{{ form.name.value|default_if_none:'' }}" 
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Discount Percentage -->
+                <div>
+                    <label for="id_discount_percentage" class="block text-sm font-medium text-gray-700">ส่วนลด (%)</label>
+                    <input type="number" id="id_discount_percentage" name="discount_percentage" 
+                           value="{{ form.discount_percentage.value|default_if_none:'' }}" 
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Start Date -->
+                <div>
+                    <label for="id_start_date" class="block text-sm font-medium text-gray-700">วันที่เริ่มต้น</label>
+                    <input type="text" id="id_start_date" name="start_date" 
+                           value="{{ form.start_date.value|date:'Y-m-d\\TH:i'|default_if_none:'' }}" 
+                           class="flatpickr mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- End Date -->
+                <div>
+                    <label for="id_end_date" class="block text-sm font-medium text-gray-700">วันที่สิ้นสุด</label>
+                    <input type="text" id="id_end_date" name="end_date" 
+                           value="{{ form.end_date.value|date:'Y-m-d\\TH:i'|default_if_none:'' }}" 
+                           class="flatpickr mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+
+                <!-- Submit Button -->
+                <button type="submit" class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300">
+                    บันทึกการเปลี่ยนแปลง
+                </button>
+            </form>
+
+            <!-- Back Button -->
+            <div class="mt-4 text-center">
+                <a href="{% url 'manage_promotions' %}" class="text-gray-600 hover:text-blue-500">ย้อนกลับ</a>
+            </div>
+        </div>
+    </div>
+</body>
+    <!-- Include Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        // Initialize Flatpickr for date and time selection
+        document.querySelectorAll('.flatpickr').forEach((element) => {
+            flatpickr(element, {
+                enableTime: true,
+                dateFormat: "Y-m-d H:i",
+                time_24hr: true,
+            });
+        });
+    </script>
+</body>
+</html>

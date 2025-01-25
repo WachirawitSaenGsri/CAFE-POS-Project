@@ -1,4 +1,5 @@
 # models.py
+from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
 class Store(models.Model):
@@ -37,6 +38,20 @@ class Ingredient(models.Model):
 
     def __str__(self):
         return self.name
+
+class Promotion(models.Model):
+    name = models.CharField(max_length=100)
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="promotions", null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    def is_active(self):
+        now = timezone.now()
+        return self.start_date <= now <= self.end_date
 class Product(models.Model):
     product_name = models.CharField(max_length=100)
     img_product = models.ImageField(upload_to='img/', null=True, blank=True)
@@ -46,6 +61,13 @@ class Product(models.Model):
     #stock = models.IntegerField(default=0,null=True,blank=True)
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="products", null=True, blank=True)
     ingredients = models.ManyToManyField(Ingredient, through='ProductIngredient')  # เชื่อมโยงกับวัตถุดิบ
+    promotion = models.ForeignKey(Promotion, null=True, blank=True, on_delete=models.SET_NULL)
+
+    def get_discounted_price(self):
+        if self.promotion and self.promotion.is_active():
+            discount = self.price * (self.promotion.discount_percentage / 100)
+            return self.price - discount
+        return self.price
 
     def __str__(self):
         return self.product_name

@@ -220,7 +220,7 @@ def PayMent(request, order_id):
     for detail in order.order_details.all():
         selected_options = detail.options.all()
         total_option_price = sum(option.price for option in selected_options)
-        unit_price = detail.product.price + total_option_price
+        unit_price = detail.product.get_discounted_price() + total_option_price
         total_item_price = unit_price * detail.quantity
         order_details.append({
             'product_name': detail.product.product_name,
@@ -291,7 +291,7 @@ def print_receipt(request, order_id):
     for detail in order.order_details.all():
         selected_options = detail.options.all()
         total_option_price = sum(option.price for option in selected_options)
-        unit_price = detail.product.price + total_option_price
+        unit_price = detail.product.get_discounted_price() + total_option_price
         total_item_price = unit_price * detail.quantity
         order_details.append({
             'product_name': detail.product.product_name,
@@ -611,6 +611,7 @@ def home(request):
     for product in page_obj:
         # ใช้ .all() เพื่อดึงข้อมูล options ที่เชื่อมโยงกับ product
         product.options_list = [option.name for option in product.options.all()] if product.options.exists() else []
+        product.discounted_price = product.get_discounted_price()  # คำนวณราคาสินค้าหลังหักส่วนลด
 
     # ส่งข้อมูลไปยัง template
     return render(request, 'home.html', {
@@ -677,7 +678,8 @@ def add_to_order(request):
             total_option_price = sum([option.price for option in selected_options])
 
             # คำนวณราคารวมพร้อมตัวเลือก
-            total_price = (product.price + total_option_price) * quantity
+            unit_price = product.get_discounted_price() + total_option_price
+            total_price = unit_price * quantity
 
             # ตรวจสอบวัตถุดิบที่จำเป็นสำหรับผลิตภัณฑ์นี้
             product_ingredients = ProductIngredient.objects.filter(product=product)
@@ -715,7 +717,7 @@ def add_to_order(request):
                 # หากมีรายละเอียดคำสั่งซื้อที่มีตัวเลือกเดียวกัน เพียงอัปเดตปริมาณและราคา
                 order_detail = order_detail.first()
                 order_detail.quantity += quantity
-                order_detail.price = order_detail.quantity * (product.price + total_option_price)
+                order_detail.price = order_detail.quantity * (product.get_discounted_price() + total_option_price)
                 order_detail.save()
 
             # อัพเดทราคารวมออเดอร์
@@ -756,7 +758,7 @@ def update_order_detail(request):
             for product_ingredient in product_ingredients:
                 ingredient = product_ingredient.ingredient
                 if ingredient.stock < product_ingredient.quantity * quantity_diff:
-                    return JsonResponse({'status': 'error', 'message': f'สต็อกไม่เพียงพอสำหรับ {ingredient.name}'})
+                    return JsonResponse({'status': 'error', 'message': f'สต็อก {ingredient.name} ไม่เพียงพอ'})
 
             # อัพเดตปริมาณวัตถุดิบ
             for product_ingredient in product_ingredients:
@@ -767,7 +769,8 @@ def update_order_detail(request):
             # คำนวณราคาใหม่ของรายละเอียดคำสั่งซื้อ
             selected_options = order_detail.options.all()
             total_option_price = sum(option.price for option in selected_options)
-            total_price = (order_detail.product.price + total_option_price) * new_quantity
+            unit_price = order_detail.product.get_discounted_price() + total_option_price
+            total_price = unit_price * new_quantity
 
             order_detail.quantity = new_quantity
             order_detail.price = total_price
@@ -1064,3 +1067,82 @@ def manage_product_ingredient_list(request):
         'product_with_ingredients': product_with_ingredients
     })
 
+@login_required
+def manage_promotions(request):
+    store = request.user.member_profile.store
+    search_query = request.GET.get('search', '')  # รับคำค้นหาจากฟอร์ม
+    promotions = Promotion.objects.filter(store=store)
+
+    # ค้นหาสินค้าที่เกี่ยวข้องกับโปรโมชั่น
+    if search_query:
+        products = Product.objects.filter(store=store, product_name__icontains=search_query)
+    else:
+        products = Product.objects.filter(store=store)
+
+        # Paginate products
+    paginator = Paginator(products, 10)  # Show 10 products per page
+    page_number = request.GET.get('page')  # Get the current page number
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'manage_promotions.html', {
+        'promotions': promotions,
+        'products': page_obj.object_list,  # Pass the products for the current page
+        'page_obj': page_obj,  # Pass the paginator object for the template
+        'search_query': search_query,  # Pass the search query
+    })
+@login_required
+def add_promotion(request):
+    if request.method == 'POST':
+        form = PromotionForm(request.POST)
+        if form.is_valid():
+            promotion = form.save(commit=False)
+            promotion.store = request.user.member_profile.store
+            promotion.save()
+            form.save()
+            return redirect('manage_promotions')
+    else:
+        form = PromotionForm()
+    return render(request, 'add_promotion.html', {'form': form})
+
+@login_required
+def update_product_promotion(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    store = request.user.member_profile.store
+
+    if request.method == 'POST':
+        promotion_id = request.POST.get('promotion')
+
+        if promotion_id:
+            promotion = get_object_or_404(Promotion, id=promotion_id, store=store)
+            if promotion.is_active():
+                product.promotion = promotion
+                messages.success(request, 'อัปเดตโปรโมชันสำเร็จแล้ว!')
+            else:
+                messages.error(request, 'โปรโมชั่นที่เลือกไม่ทำงาน')
+        else:
+            product.promotion = None
+            messages.success(request, 'ลบโปรโมชันสำเร็จแล้ว!')
+
+        product.save()
+
+    return redirect('manage_promotions')
+
+@login_required
+def edit_promotion(request, promotion_id):
+    promotion = get_object_or_404(Promotion, id=promotion_id, store=request.user.member_profile.store)
+    if request.method == 'POST':
+        form = PromotionForm(request.POST, instance=promotion)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'แก้ไขโปรโมชันสำเร็จแล้ว!')
+            return redirect('manage_promotions')
+    else:
+        form = PromotionForm(instance=promotion)
+    return render(request, 'edit_promotion.html', {'form': form})
+
+@login_required
+def delete_promotion(request, promotion_id):
+    promotion = get_object_or_404(Promotion, id=promotion_id, store=request.user.member_profile.store)
+    promotion.delete()
+    messages.success(request, 'ลบโปรโมชันสำเร็จแล้ว!')
+    return redirect('manage_promotions')

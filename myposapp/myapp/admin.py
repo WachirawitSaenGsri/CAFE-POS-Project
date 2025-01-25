@@ -14,4 +14,5 @@ admin.site.register(PointsConfig)
 admin.site.register(Store)
 admin.site.register(Ingredient)
 admin.site.register(ProductIngredient)
+admin.site.register(Promotion)
 
