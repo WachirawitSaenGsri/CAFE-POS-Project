@@ -20,19 +20,19 @@
 {% include 'component/sidebar.html' %}
 {% include 'component/navbar.html' %}
 
-<div class="container mx-auto p-6">
-
-  <!-- Page Title -->
-  <h2 class="text-3xl font-semibold text-gray-800 ml-24 mb-6">จัดการวัตถุดิบ</h2>
+<div class="container mx-auto py-10 px-6">
+    <div class="bg-white rounded-lg shadow-lg p-6 ml-20">
+  <h2 class="text-3xl font-semibold text-gray-800">จัดการวัตถุดิบ</h2>
+    <p class="text-gray-600">เพิ่ม แก้ไข และลบวัตถุดิบ</p>
 
   <!-- Button to Open Modal -->
-  <div class="flex items-center space-x-4 ml-24">
+  <div class="flex items-center space-x-4">
     <button class="bg-green-500 text-white py-2 px-6 rounded-lg mt-4 hover:bg-green-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50" onclick="openModal()">เพิ่มวัตถุดิบ</button>
     <a href="{% url 'manage_product_ingredients_list' %}" class="bg-blue-500 text-white py-2 px-6 rounded-lg mt-4 hover:bg-blue-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">จัดการสูตร</a>
   </div>
 
   <!-- Ingredients Table -->
-  <div class="mt-6 overflow-hidden shadow-lg bg-white rounded-lg ml-24">
+  <div class="mt-6 overflow-hidden shadow-lg bg-white rounded-lg">
     <table class="min-w-full table-auto border-collapse">
       <thead>
         <tr class="bg-yellow-500 text-white text-center">
@@ -67,7 +67,7 @@
       </tbody>
     </table>
   </div>
-
+</div>
   <!-- Pagination -->
   <div class="mt-6 flex justify-center">
     <nav class="flex items-center space-x-2">
@@ -142,7 +142,50 @@
         <button id="confirmDeleteButton" class="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition duration-300">ยืนยัน</button>
       </div>
     </div>
-  </div>
+      <!-- Success/Error Modal -->
+{% if messages %}
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 transition-opacity duration-300 ease-in-out">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
+        <!-- Icon and Title -->
+        <div class="flex items-center space-x-4">
+            {% for message in messages %}
+                {% if message.tags == 'success' %}
+                    <div class="flex-shrink-0 bg-green-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                             xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                {% elif message.tags == 'error' %}
+                    <div class="flex-shrink-0 bg-red-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                             xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                {% endif %}
+            <!-- Message Content -->
+            <div>
+                <h3 class="text-lg font-semibold {% if message.tags == 'success' %}text-green-600{% elif message.tags == 'error' %}text-red-600{% endif %}">
+                    {{ message.tags|title }}
+                </h3>
+                <p class="text-gray-700 mt-1">{{ message }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Action Button -->
+        <div class="mt-6 text-center">
+            <button id="close-modal" class="bg-blue-500 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300">
+                ปิดหน้าต่าง
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+</div>
 
   <!-- Modal Script -->
   <script>

@@ -18,16 +18,18 @@
     {% include 'component/sidebar.html' %}
     {% include 'component/navbar.html' %}
 
-    <div class="container mx-auto p-6">
-        <h1 class="text-2xl font-bold mb-4 ml-20">ประวัติการสั่งซื้อ</h1>
+<div class="container mx-auto py-10 px-6">
+    <div class="bg-white rounded-lg shadow-lg p-6 ml-20">
+        <h2 class="text-3xl font-semibold text-gray-800 ">ประวัติการสั่งซื้อ</h2>
+        <p class="text-gray-600 mb-6">ดูรายการสั่งซื้อและสถานะการชำระเงิน</p>
 
         <!-- Search and Date Filter Form -->
-        <form method="get" action="" class="mb-6 flex justify-start items-center ml-20">
+        <form method="get" action="" class="mb-6 flex justify-start items-center ">
             <input type="text" name="search" value="{{ search_query }}" class="border-2 border-gray-300 p-2 rounded-md" placeholder="ค้นหาคำสั่งซื้อจาก Order ชื่อลูกค้า สถานะ)">
-            
+
             <!-- Date Filter Dropdown -->
             <select name="date_filter" class="border-2 border-gray-300 p-2 rounded-md ml-2">
-                <option value="">All time</option>
+                <option value="">ทุกช่วงเวลา</option>
                 <option value="today" {% if date_filter == 'today' %}selected{% endif %}>วันนี้</option>
                 <option value="this_week" {% if date_filter == 'this_week' %}selected{% endif %}>สัปดาห์นี้</option>
                 <option value="this_month" {% if date_filter == 'this_month' %}selected{% endif %}>เดือนนี้</option>
@@ -44,23 +46,23 @@
         </form>
 
         <!-- Order List Table -->
-        <div class="order-list ml-20">
-            <table class="table-auto w-full border-collapse shadow-md bg-white rounded-lg">
+        <div class="order-list mt-6 overflow-hidden rounded-lg">
+            <table class="table-auto w-full border-collapse shadow-lg bg-white rounded-lg">
                 <thead>
                     <tr class="bg-yellow-500 text-white text-center">
-                        <th class="py-2 px-4">Order</th>
-                        <th class="py-2 px-4">สินค้า</th>
-                        <th class="py-2 px-4">สถานะ</th>
-                        <th class="py-2 px-4">ราคารวม</th>
-                        <th class="py-2 px-4">วันที่สั่งซื้อ</th>
-                        <th class="py-2 px-4">การจัดการ</th>
+                        <th class="px-6 py-4 text-lg">Order</th>
+                        <th class="px-6 py-4 text-lg">สินค้า</th>
+                        <th class="px-6 py-4 text-lg">สถานะ</th>
+                        <th class="px-6 py-4 text-lg">ราคารวม</th>
+                        <th class="px-6 py-4 text-lg">วันที่สั่งซื้อ</th>
+                        <th class="px-6 py-4 text-lg">การจัดการ</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for order in page_obj %}
                     <tr class="border-t hover:bg-gray-50 text-center">
-                        <td class="py-2 px-4">{{ order.id }}</td>
-                        <td class="py-2 px-4">
+                        <td class="px-6 py-4">{{ order.id }}</td>
+                        <td class="px-6 py-4">
                             {% for detail in order.order_details.all %}
                                 <p class="text-sm">
                                     <span class="product-option">{{ detail.product.product_name }} x {{ detail.quantity }}</span>
@@ -72,14 +74,14 @@
                                 </p>
                             {% endfor %}
                         </td>
-                        <td class="py-2 px-4">
+                        <td class="px-6 py-4">
                             <span class="text-sm {% if order.status == 'Success' %}text-green-500{% else %}text-red-500{% endif %}">
                                 {{ order.status }}
                             </span>
                         </td>
-                        <td class="py-2 px-4">{{ order.total_price }} ฿</td>
-                        <td class="py-2 px-4">{{ order.created_at|date:"d/m/Y H:i" }}</td>
-                        <td class="py-2 px-4">
+                        <td class="px-6 py-4">{{ order.total_price }} ฿</td>
+                        <td class="px-6 py-4">{{ order.created_at|date:"d/m/Y H:i" }}</td>
+                        <td class="px-6 py-4">
                             <button onclick="showOrderDetail({{ order.id }})" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md">
                                 ดูรายละเอียด
                             </button>
@@ -88,7 +90,7 @@
                     {% endfor %}
                 </tbody>
             </table>
-
+        </div>
             <!-- Pagination -->
             <div class="mt-4 flex justify-center">
                 <nav class="flex items-center space-x-2">

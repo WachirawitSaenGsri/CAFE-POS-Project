@@ -18,44 +18,43 @@
 {% include 'component/sidebar.html' %}
 {% include 'component/navbar.html' %}
 
-<div class="container mx-auto p-6">
-    <div class="flex items-center gap-4 mb-6 ml-20"> <!-- Added gap-4 for space between the buttons -->
-        <h2 class="text-2xl font-semibold">ข้อมูลสมาชิก</h2>
-    </div>
+<div class="container mx-auto py-10 px-6">
+    <div class="bg-white rounded-lg shadow-lg p-6 ml-20">
+        <h2 class="text-3xl font-semibold text-gray-800 mb-6">ข้อมูลสมาชิก</h2>
 
-    <form method="GET" class="mb-6 ml-20">
+    <form method="GET" class="mb-6">
         <input type="text" name="search" placeholder="ค้นหาสมาชิก..." class="p-2 border border-gray-300 rounded-md" value="{{ search_query }}">
         <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600">
             ค้นหา
         </button>
     </form>
-<div class="flex items-center gap-4 mb-6 ml-20">
+<div class="flex items-center gap-4 mb-6">
     <button class="bg-green-500 text-white py-2 px-6 rounded-md" id="openPointsConfigModal">ตั้งค่าแต้มสะสม</button>
         <!-- ปุ่มสำหรับเพิ่มสมาชิก -->
     <button class="bg-green-500 text-white py-2 px-6 rounded-md" id="openAddMemberModal">เพิ่มสมาชิก</button>
 </div>
     {% if customers %}
-        <div class="overflow-x-auto bg-white p-6 rounded-md shadow-md ml-20">
+        <div class="overflow-x-auto bg-white p-6 rounded-md shadow-md">
             <table class="min-w-full bg-white text-sm">
-                <thead class="border-b bg-gray-100">
+                <thead class="border-b bg-yellow-500">
                     <tr>
-                        <th class="py-3 px-4 text-left font-semibold text-gray-700">ชื่อสมาชิก</th>
-                        <th class="py-3 px-4 text-left font-semibold text-gray-700">อีเมล</th>
-                        <th class="py-3 px-4 text-left font-semibold text-gray-700">เบอร์โทรศัพท์</th>
-                        <th class="py-3 px-4 text-left font-semibold text-gray-700">แต้มสะสม</th>
-                        <th class="py-3 px-4 text-left font-semibold text-gray-700">วันที่ลงทะเบียน</th>
-                        <th class="py-3 px-4 text-left font-semibold text-gray-700">การจัดการ</th>
+                        <th class="px-6 py-4 text-lg text-center font-semibold text-white">ชื่อสมาชิก</th>
+                        <th class="px-6 py-4 text-lg text-center font-semibold text-white">อีเมล</th>
+                        <th class="px-6 py-4 text-lg text-center font-semibold text-white">เบอร์โทรศัพท์</th>
+                        <th class="px-6 py-4 text-lg text-center font-semibold text-white">แต้มสะสม</th>
+                        <th class="px-6 py-4 text-lg text-center font-semibold text-white">วันที่ลงทะเบียน</th>
+                        <th class="px-6 py-4 text-lg text-center font-semibold text-white">การจัดการ</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for customer in customers %}
                         <tr class="border-b hover:bg-gray-50">
-                            <td class="py-3 px-4">{{ customer.name }}</td>
-                            <td class="py-3 px-4">{{ customer.email }}</td>
-                            <td class="py-3 px-4">{{ customer.phone }}</td>
-                            <td class="py-3 px-4 font-bold">{{ customer.points }}</td>
-                            <td class="py-3 px-4">{{ customer.created_at|date:"d M Y" }}</td>
-                            <td class="py-3 px-4">
+                            <td class="px-6 py-4 text-center ">{{ customer.name }}</td>
+                            <td class="px-6 py-4 text-center">{{ customer.email }}</td>
+                            <td class="px-6 py-4 text-center">{{ customer.phone }}</td>
+                            <td class="px-6 py-4 text-center">{{ customer.points }}</td>
+                            <td class="px-6 py-4 text-center">{{ customer.created_at|date:"d M Y" }}</td>
+                            <td class="px-6 py-4 text-center">
                                 <a href="{% url 'edit_member' customer.id %}" class="text-blue-500 hover:text-blue-700">แก้ไข</a> |
                                 <a href="{% url 'delete_member' customer.id %}" class="text-red-500 hover:text-red-700">ลบ</a>
                             </td>
@@ -67,13 +66,42 @@
     {% else %}
         <p class="ml-20 text-gray-500">ยังไม่มีข้อมูลสมาชิก</p>
     {% endif %}
+    </div>
+<!-- Pagination -->
+<div class="mt-4 flex justify-center">
+    <nav class="pagination flex space-x-2">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"
+               class="px-4 py-2 border rounded bg-white text-gray-700 hover:bg-gray-100">
+                Previous
+            </a>
+        {% endif %}
 
+        {% for num in page_obj.paginator.page_range %}
+            {% if num == page_obj.number %}
+                <span class="px-4 py-2 border rounded bg-yellow-500 text-white">{{ num }}</span>
+            {% elif num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %}
+                <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}"
+                   class="px-4 py-2 border rounded bg-white text-gray-700 hover:bg-gray-100">
+                    {{ num }}
+                </a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"
+               class="px-4 py-2 border rounded bg-white text-gray-700 hover:bg-gray-100">
+                Next
+            </a>
+        {% endif %}
+    </nav>
+</div>
     <!-- Modal สำหรับกรอกข้อมูลสมาชิกใหม่ -->
     <div id="addMemberModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 hidden">
         <div class="flex justify-center items-center min-h-screen">
             <div class="bg-white p-6 rounded-lg shadow-lg w-96">
                 <h3 class="text-2xl font-semibold mb-4 text-center">เพิ่มสมาชิกใหม่</h3>
-                
+
                 <form method="POST" action="{% url 'member' %}">
                     {% csrf_token %}
                     <div class="space-y-4">
@@ -138,7 +166,49 @@
         </div>
     </div>
 </div>
-
+<!-- Success/Error Modal -->
+{% if messages %}
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 transition-opacity duration-300 ease-in-out">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
+        <!-- Icon and Title -->
+        <div class="flex items-center space-x-4">
+            {% for message in messages %}
+                {% if message.tags == 'success' %}
+                    <div class="flex-shrink-0 bg-green-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                             xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                {% elif message.tags == 'error' %}
+                    <div class="flex-shrink-0 bg-red-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                             xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                {% endif %}
+            <!-- Message Content -->
+            <div>
+                <h3 class="text-lg font-semibold {% if message.tags == 'success' %}text-green-600{% elif message.tags == 'error' %}text-red-600{% endif %}">
+                    {{ message.tags|title }}
+                </h3>
+                <p class="text-gray-700 mt-1">{{ message }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Action Button -->
+        <div class="mt-6 text-center">
+            <button id="close-modal" class="bg-blue-500 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300">
+                ปิดหน้าต่าง
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
 </div>
 
 
@@ -147,6 +217,11 @@
     const openAddMemberModalBtn = document.getElementById('openAddMemberModal');
     const closeAddMemberModalBtn = document.getElementById('closeAddMemberModal');
     const addMemberModal = document.getElementById('addMemberModal');
+    const closeModalBtn = document.getElementById('close-modal');
+        document.getElementById('close-modal')?.addEventListener('click', function () {
+            document.getElementById('modal').style.display = 'none';
+            window.location.reload();
+        });
 
     openAddMemberModalBtn.addEventListener('click', () => {
         addMemberModal.classList.remove('hidden');

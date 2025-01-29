@@ -3,7 +3,12 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import *
 
-
+class EmployeeForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput, required=False)
+    role = forms.ChoiceField(choices=Member.ROLE_CHOICES)
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'email', 'password', 'role']
 class PromotionForm(forms.ModelForm):
     class Meta:
         model = Promotion

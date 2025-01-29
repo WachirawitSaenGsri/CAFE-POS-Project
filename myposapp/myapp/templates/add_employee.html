@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เพิ่มพนักงาน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+        }
+
+        .form-field label {
+            margin-bottom: 0.5rem;
+            display: block;
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        .form-field input, .form-field select {
+            display: block;
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .form-field input:focus, .form-field select:focus {
+            border-color: #60a5fa;
+            outline: none;
+            box-shadow: 0 0 0 3px #bfdbfe;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-kanit">
+    <div class="container mx-auto py-12 px-6 max-w-4xl">
+        <div class="bg-white rounded-lg shadow-xl p-10">
+            <h1 class="text-4xl font-bold text-gray-800 text-center mb-6">เพิ่มพนักงาน</h1>
+            <p class="text-gray-600 text-center mb-8">
+                กรอกข้อมูลพนักงานใหม่ในระบบ เช่น ชื่อผู้ใช้ บทบาท และข้อมูลอื่น ๆ
+            </p>
+
+            <!-- Form -->
+            <form method="POST" class="space-y-6">
+                {% csrf_token %}
+
+                <!-- Username -->
+                <div class="form-field">
+                    <label for="username">ชื่อผู้ใช้</label>
+                    {{ form.username }}
+                </div>
+
+                <!-- First Name -->
+                <div class="form-field">
+                    <label for="first_name">ชื่อจริง</label>
+                    {{ form.first_name }}
+                </div>
+
+                <!-- Last Name -->
+                <div class="form-field">
+                    <label for="last_name">นามสกุล</label>
+                    {{ form.last_name }}
+                </div>
+
+                <!-- Email -->
+                <div class="form-field">
+                    <label for="email">อีเมล</label>
+                    {{ form.email }}
+                </div>
+
+                <!-- Password -->
+                <div class="form-field">
+                    <label for="password">รหัสผ่าน</label>
+                    {{ form.password }}
+                </div>
+
+                <!-- Role -->
+                <div class="form-field">
+                    <label for="role">บทบาท</label>
+                    {{ form.role }}
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex justify-end mt-6 space-x-4">
+                    <!-- Back Button -->
+                    <a href="{% url 'manage_employees' %}" 
+                       class="bg-gray-300 text-gray-800 px-6 py-2 rounded-lg shadow hover:bg-gray-400 focus:ring focus:ring-gray-400 transition">
+                        กลับ
+                    </a>
+                    <!-- Submit Button -->
+                    <button type="submit" 
+                            class="bg-blue-500 text-white px-6 py-2 rounded-lg shadow hover:bg-green-600 focus:ring focus:ring-green-300 transition">
+                        บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

@@ -32,20 +32,20 @@
 
             <!-- Product Table -->
             <table class="min-w-full table-auto border-collapse shadow-md">
-                <thead class="bg-gray-200 text-gray-600">
+                <thead class="bg-gray-200 text-white bg-yellow-500">
                     <tr>
-                        <th class="px-4 py-2 text-left">ชื่อสิ้นค้า</th>
-                        <th class="px-4 py-2 text-left">คำอธิบาย</th>
-                        <th class="px-4 py-2 text-left">ส่วนประกอบ</th>
-                        <th class="px-4 py-2 text-center">จัดการสูตร</th>
+                        <th class="px-4 py-2 text-center text-lg">ชื่อสินค้า</th>
+                        <th class="px-4 py-2 text-center text-lg">คำอธิบาย</th>
+                        <th class="px-4 py-2 text-center text-lg">ส่วนประกอบ</th>
+                        <th class="px-4 py-2 text-center text-lg">จัดการสูตร</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in product_with_ingredients %}
-                        <tr class="border-b hover:bg-gray-100">
-                            <td class="px-4 py-2">{{ item.product.product_name }}</td>
-                            <td class="px-4 py-2">{{ item.product.description }}</td>
-                            <td class="px-4 py-2">
+                        <tr class="text-center hover:bg-gray-50 border-b text-lg">
+                            <td class="px-4 py-2 text-center text-gray-800">{{ item.product.product_name }}</td>
+                            <td class="px-4 py-2 text-center text-gray-800">{{ item.product.description }}</td>
+                            <td class="px-4 py-2 text-center text-gray-800">
                                 {% if item.ingredients %}
                                     <ul>
                                         {% for ingredient in item.ingredients %}
@@ -53,7 +53,7 @@
                                         {% endfor %}
                                     </ul>
                                 {% else %}
-                                    <span class="text-gray-500">ไม่ได้เพิ่มส่วนประกอบ</span>
+                                    <span class="text-gray-500 text-gray-800">ไม่ได้เพิ่มส่วนประกอบ</span>
                                 {% endif %}
                             </td>
                             <td class="px-4 py-2 text-center">

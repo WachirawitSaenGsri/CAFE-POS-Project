@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แก้ไขพนักงาน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-kanit">
+    <div class="container mx-auto py-12 px-6 max-w-4xl">
+        <div class="bg-white rounded-lg shadow-lg p-10">
+            <h1 class="text-4xl font-bold text-gray-800 text-center mb-6">แก้ไขพนักงาน</h1>
+            <p class="text-gray-500 text-center mb-8">
+                กรอกข้อมูลเพื่ออัปเดตข้อมูลพนักงาน เช่น ชื่อผู้ใช้ อีเมล บทบาท และรหัสผ่าน
+            </p>
+
+            <!-- Form -->
+            <form method="POST" class="space-y-6">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 gap-y-6">
+                    <!-- Username -->
+                    <div>
+                        <label for="id_username" class="block text-sm font-medium text-gray-700">ชื่อผู้ใช้</label>
+                        <input type="text" id="id_username" name="username" value="{{ form.username.value }}" 
+                            class="mt-2 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="กรอกชื่อผู้ใช้">
+                    </div>
+
+                    <!-- First Name -->
+                    <div>
+                        <label for="id_first_name" class="block text-sm font-medium text-gray-700">ชื่อจริง</label>
+                        <input type="text" id="id_first_name" name="first_name" value="{{ form.first_name.value }}" 
+                            class="mt-2 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="กรอกชื่อจริง">
+                    </div>
+
+                    <!-- Last Name -->
+                    <div>
+                        <label for="id_last_name" class="block text-sm font-medium text-gray-700">นามสกุล</label>
+                        <input type="text" id="id_last_name" name="last_name" value="{{ form.last_name.value }}" 
+                            class="mt-2 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="กรอกนามสกุล">
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label for="id_email" class="block text-sm font-medium text-gray-700">อีเมล</label>
+                        <input type="email" id="id_email" name="email" value="{{ form.email.value }}" 
+                            class="mt-2 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="กรอกอีเมล">
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label for="id_password" class="block text-sm font-medium text-gray-700">รหัสผ่าน</label>
+                        <input type="password" id="id_password" name="password" value="" 
+                            class="mt-2 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="กรอกรหัสผ่าน (ไม่บังคับ)">
+                    </div>
+
+                    <!-- Role -->
+                    <div>
+                        <label for="id_role" class="block text-sm font-medium text-gray-700">บทบาท</label>
+                        <select id="id_role" name="role" 
+                            class="mt-2 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                            {% for value, label in form.fields.role.choices %}
+                                <option value="{{ value }}" {% if value == form.role.value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex justify-end space-x-4 mt-6">
+                    <!-- Back Button -->
+                    <a href="{% url 'manage_employees' %}" 
+                       class="bg-gray-300 text-gray-800 px-6 py-2 rounded-lg shadow hover:bg-gray-400 focus:ring-2 focus:ring-gray-400 transition">
+                        กลับ
+                    </a>
+                    <!-- Submit Button -->
+                    <button type="submit" 
+                            class="bg-blue-500 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring-2 focus:ring-blue-300 transition">
+                        บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

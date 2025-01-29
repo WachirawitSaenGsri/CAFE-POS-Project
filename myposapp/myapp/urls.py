@@ -29,6 +29,8 @@ urlpatterns = [
     path('edit_product/<int:product_id>/', views.edit_product, name='edit_product'),
     path('delete_product/<int:product_id>/', views.delete_product, name='delete_product'),
     path('add_category/', views.add_category, name='add_category'),
+    path('edit_category/<int:category_id>/', views.edit_category, name='edit_category'),
+    path('delete_category/<int:category_id>/', views.delete_category, name='delete_category'),
     path('password_reset/', auth_views.PasswordResetView.as_view(template_name='password_reset_form.html'), name='password_reset'),
     path('password_reset_done/', auth_views.PasswordResetDoneView.as_view(template_name='password_reset_done.html'), name='password_reset_done'),
     path('password_reset_confirm/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='password_reset_confirm.html'), name='password_reset_confirm'),
@@ -49,5 +51,11 @@ urlpatterns = [
     path('promotions/add/', views.add_promotion, name='add_promotion'),
     path('promotions/update/<int:product_id>/', views.update_product_promotion, name='update_product_promotion'),
     path('promotions/edit/<int:promotion_id>/', views.edit_promotion, name='edit_promotion'),
-    path('promotions/delete/<int:promotion_id>/', views.delete_promotion, name='delete_promotion')
+    path('promotions/delete/<int:promotion_id>/', views.delete_promotion, name='delete_promotion'),
+    path('employees/', views.manage_employees, name='manage_employees'),
+    path('employees/add/', views.add_employee, name='add_employee'),
+    path('employees/edit/<int:employee_id>/', views.edit_employee, name='edit_employee'),
+    path('employees/delete/<int:employee_id>/', views.delete_employee, name='delete_employee'),
+    path('employee_performance/<int:employee_id>/', views.employee_performance, name='employee_performance'),
+    path('top_employees/', views.top_employees, name='top_employees'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

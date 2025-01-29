@@ -13,7 +13,7 @@ from .forms import *
 from django.db import transaction
 from myapp.models import *
 from datetime import datetime, timedelta
-from django.db.models import Sum, Count, Avg
+from django.db.models import Sum, Count, Avg, F
 from django.db.models.functions import TruncMonth, TruncYear
 def user_login(request):
     if request.method == 'POST':
@@ -159,7 +159,6 @@ def complete_order(request, order_id):
     order.status = 'Success'
     order.save()
 
-    messages.success(request, f'Order #{order.id} เสร็จสมบูรณ์เรียบร้อยแล้ว')
     return JsonResponse({'status': 'success', 'message': 'อัปเดตสถานะคำสั่งซื้อเป็นสำเร็จแล้ว'})
 @login_required
 @csrf_exempt
@@ -179,6 +178,7 @@ def PayNow(request, order_id):
                 #อัพเดทออเดอร์พร้อมข้อมูลลูกค้า
                 order.customer_name = customer_name
                 order.customer_phone = customer_phone
+                order.employee = request.user
                 order.store = store
                 order.save()
                 # เปลี่ยนเส้นทางไปยังหน้าการชำระเงิน
@@ -270,7 +270,6 @@ def PayMent(request, order_id):
                 customer = customerMember.objects.get(phone=order.customer_phone)
                 customer.points += points_earned
                 customer.save()
-                messages.success(request, f'ชำระเงินสำเร็จ! คุณได้รับ {points_earned} แต้ม.')
             except customerMember.DoesNotExist:
                 messages.warning(request, 'ไม่พบข้อมูลลูกค้า')
         return redirect('order')
@@ -397,7 +396,6 @@ def Marketing(request):
     }
     return render(request, 'Marketing.html', context)
 
-
 @login_required
 def History_Order(request):
     store = request.user.member_profile.store  # รับร้านค้าที่เกี่ยวข้องกับผู้ใช้ที่เข้าสู่ระบบ
@@ -449,7 +447,8 @@ def History_Order(request):
     return render(request, 'History_Order.html', {
         'page_obj': page_obj,
         'search_query': search_query,
-        'date_filter': date_filter
+        'date_filter': date_filter,
+
     })
 
 
@@ -492,7 +491,10 @@ def Member1(request):
         )
     else:
         customers = customerMember.objects.filter(store=store)
-
+    paginator = Paginator(customers, 10)  # Show 10 employees per page
+    page_number = request.GET.get('page')  # Get the current page number
+    page_obj = paginator.get_page(page_number)
+    evaluation_data = []
     if request.method == "POST":
         form = CustomerMemberForm(request.POST)
         if form.is_valid():
@@ -505,9 +507,10 @@ def Member1(request):
             messages.error(request, "กรุณากรอกข้อมูลให้ครบถ้วน")
 
     return render(request, 'Member1.html', {
-        'customers': customers,
+        'customers': page_obj.object_list,
         'form': form,
         'search_query': search_query,
+        'page_obj': page_obj,
     })
 
 
@@ -829,7 +832,6 @@ def add_product(request):
             for name, price in zip(option_names, option_prices):
                 Option.objects.create(product=product, name=name, price=price)
 
-            messages.success(request, 'เพิ่มสินค้าเรียบร้อยแล้ว!')
             return redirect('add_product')  # เปลี่ยนเส้นทางหลังจากส่งแบบฟอร์มสำเร็จ
         else:
             print("แบบฟอร์มไม่ถูกต้อง", form.errors)
@@ -841,7 +843,8 @@ def add_product(request):
 @login_required
 def edit_product(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-
+    store = request.user.member_profile.store
+    categories = Category.objects.filter(store=store)
     if request.method == 'POST':
         product_form = ProductForm(request.POST, request.FILES, instance=product)
 
@@ -863,7 +866,6 @@ def edit_product(request, product_id):
                     price=price
                 )
 
-            messages.success(request, 'อัพเดทสินค้าเรียบร้อยแล้ว!')
             return redirect('addmenu')  # เปลี่ยนเส้นทางหลังจากส่งแบบฟอร์มสำเร็จ
     else:
         product_form = ProductForm(instance=product)
@@ -883,13 +885,13 @@ def edit_product(request, product_id):
         'form': product_form,
         'product': product,
         'options': options,  # ส่งตัวเลือกเป็น JSON
+        'categories': categories,
     })
 # View สำหรับการลบสินค้า
 @login_required
 def delete_product(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     product.delete()
-    messages.success(request, 'ลบผลิตภัณฑ์เรียบร้อยแล้ว!')
     return redirect('addmenu')
 
 
@@ -940,7 +942,6 @@ def add_ingredient(request):
             ingredient = form.save(commit=False)
             ingredient.store = store
             ingredient.save()
-            messages.success(request, 'วัตถุดิบถูกเพิ่มแล้ว!')
             return redirect('manage_ingredients')
         else:
             messages.error(request, 'กรุณากรอกข้อมูลให้ครบถ้วน')
@@ -951,7 +952,6 @@ def edit_ingredient(request, ingredient_id):
         form = IngredientOrderForm(request.POST, instance=ingredient)
         if form.is_valid():
             form.save()
-            messages.success(request, 'ข้อมูลวัตถุดิบถูกอัปเดตแล้ว!')
             return redirect('manage_ingredients')
     else:
         form = IngredientOrderForm(instance=ingredient)
@@ -960,7 +960,6 @@ def edit_ingredient(request, ingredient_id):
 def delete_ingredient(request, ingredient_id):
     ingredient = get_object_or_404(Ingredient, id=ingredient_id)
     ingredient.delete()
-    messages.success(request, 'ลบส่วนผสมของสินค้าเรียบร้ายแล้ว!')
     return redirect('manage_ingredients')
 
 
@@ -987,7 +986,6 @@ def manage_product_ingredients(request, product_id):
 
         if form.is_valid():
             form.save()
-            messages.success(request, 'เพิ่มส่วนผสมสินค้าเรียบร้อยแล้ว')
             return redirect('manage_product_ingredients', product_id=product.id)
         else:
             messages.error(request, 'เกิดข้อผิดพลาดในการเพิ่มส่วนผสมของสินค้า')
@@ -1009,7 +1007,6 @@ def manage_product_ingredients(request, product_id):
 def delete_product_ingredient(request, ingredient_id):
     ingredient = get_object_or_404(ProductIngredient, id=ingredient_id)
     ingredient.delete()
-    messages.success(request, 'ลบส่วนผสมของผลิตภัณฑ์เรียบร้อยแล้ว')
     return redirect('manage_product_ingredients', product_id=ingredient.product.id)
 
 
@@ -1029,7 +1026,6 @@ def edit_product_ingredient(request, ingredient_id):
 
         if form.is_valid():
             form.save()  # บันทึก ProductIngredient ที่อัปเดตแล้ว
-            messages.success(request, 'อัพเดทส่วนผสมสินค้าสำเร็จแล้ว.')
             return redirect('manage_product_ingredients', product_id=product_ingredient.product.id)
         else:
             messages.error(request, 'เกิดข้อผิดพลาดในการอัปเดตส่วนผสมของสินค้า')
@@ -1146,3 +1142,168 @@ def delete_promotion(request, promotion_id):
     promotion.delete()
     messages.success(request, 'ลบโปรโมชันสำเร็จแล้ว!')
     return redirect('manage_promotions')
+
+@csrf_exempt
+@login_required
+def edit_category(request, category_id):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            new_name = data.get('name')
+            category = get_object_or_404(Category, id=category_id, store=request.user.member_profile.store)
+            category.name = new_name
+            category.save()
+            return JsonResponse({'status': 'success', 'message': 'แก้ไขหมวดหมู่สำเร็จ'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+
+@csrf_exempt
+@login_required
+def delete_category(request, category_id):
+    if request.method == 'DELETE':
+        try:
+            category = get_object_or_404(Category, id=category_id, store=request.user.member_profile.store)
+            category.delete()
+            return JsonResponse({'status': 'success', 'message': 'ลบหมวดหมู่สำเร็จ'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+
+
+@login_required
+def manage_employees(request):
+    store = request.user.member_profile.store
+    search_query = request.GET.get('search', '')
+    employees = Member.objects.filter(store=store)
+
+    # Get top sales employee
+    top_sales_employee = employees.annotate(
+        total_sales=Sum('user__handled_orders__total_price')
+    ).order_by('-total_sales').first()
+
+    # Get top orders employee
+    top_orders_employee = employees.annotate(
+        total_orders=Count('user__handled_orders')
+    ).order_by('-total_orders').first()
+
+    # Search functionality
+    if search_query:
+        employees = employees.filter(
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(user__email__icontains=search_query)
+        )
+
+    paginator = Paginator(employees, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'search_query': search_query,
+        'page_obj': page_obj,
+        'employees': page_obj.object_list,
+        'top_sales_employee': top_sales_employee,
+        'top_orders_employee': top_orders_employee,
+    }
+
+    return render(request, 'manage_employees.html', context)
+@login_required
+def employee_performance(request, employee_id):
+    employee = get_object_or_404(Member, id=employee_id)
+    store = request.user.member_profile.store
+    orders = Order.objects.filter(employee=employee.user, store=store)
+    range = request.GET.get('range', 'today')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    if range == 'today':
+        orders = orders.filter(created_at__date=timezone.now().date())
+    elif range == 'week':
+        start_of_week = timezone.now() - timedelta(days=timezone.now().weekday())
+        orders = orders.filter(created_at__date__gte=start_of_week.date())
+    elif range == 'month':
+        orders = orders.filter(created_at__month=timezone.now().month)
+    elif range == 'custom' and start_date and end_date:
+        orders = orders.filter(created_at__date__gte=start_date, created_at__date__lte=end_date)
+
+    total_orders = orders.count()
+    total_revenue = orders.aggregate(Sum('total_price'))['total_price__sum'] or 0
+    average_order_value = orders.aggregate(Avg('total_price'))['total_price__avg'] or 0
+
+    data = {
+        'total_orders': total_orders,
+        'total_revenue': total_revenue,
+        'average_order_value': average_order_value,
+    }
+    return JsonResponse(data)
+
+def top_employees(request):
+    store = request.user.member_profile.store
+    employees = Member.objects.filter(store=store).annotate(
+        total_sales=Sum('user__handled_orders__total_price'),
+        total_orders=Count('user__handled_orders')
+    ).order_by('-total_sales')[:5]
+
+    data = [
+        {
+            'name': f'{employee.user.first_name} {employee.user.last_name}',
+            'total_sales': employee.total_sales,
+            'total_orders': employee.total_orders
+        }
+        for employee in employees
+    ]
+
+    return JsonResponse(data, safe=False)
+@login_required
+def add_employee(request):
+    if request.method == 'POST':
+        form = EmployeeForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data['password'])  # ตั้งรหัสผ่าน
+            user.save()
+
+            # สร้างโปรไฟล์พนักงาน (Member)
+            Member.objects.create(
+                user=user,
+                role=form.cleaned_data['role'],
+                store=request.user.member_profile.store
+            )
+            messages.success(request, 'เพิ่มพนักงานสำเร็จแล้ว!')
+            return redirect('manage_employees')
+        else:
+            messages.error(request, 'กรุณากรอกข้อมูลให้ถูกต้อง')
+    else:
+        form = EmployeeForm()
+
+    return render(request, 'add_employee.html', {'form': form})
+
+@login_required
+def edit_employee(request, employee_id):
+    employee = get_object_or_404(Member, id=employee_id)
+    user = employee.user
+
+    if request.method == 'POST':
+        form = EmployeeForm(request.POST, instance=user)
+        if form.is_valid():
+            user = form.save(commit=False)
+            if form.cleaned_data['password']:
+                user.set_password(form.cleaned_data['password'])
+            user.save()
+            employee.role = form.cleaned_data['role']
+            employee.save()
+            messages.success(request, 'อัพเดตข้อมูลพนักงานสำเร็จแล้ว!')
+            return redirect('manage_employees')
+        else:
+            messages.error(request, 'กรุณากรอกข้อมูลให้ถูกต้อง')
+    else:
+        form = EmployeeForm(instance=user)
+
+    return render(request, 'edit_employee.html', {'form': form, 'employee': employee})
+
+@login_required
+def delete_employee(request, employee_id):
+    employee = get_object_or_404(Member, id=employee_id)
+    employee.user.delete()  # ลบ user พร้อมกัน
+    employee.delete()
+    messages.success(request, 'ลบพนักงานสำเร็จแล้ว!')
+    return redirect('manage_employees')

@@ -1,0 +1,446 @@
+<!-- manage_employees.html -->
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% tailwind_css %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAFE POS - จัดการพนักงาน</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-kanit">
+{% include 'component/sidebar.html' %}
+{% include 'component/navbar.html' %}
+<!-- Success/Error Modal -->
+{% if messages %}
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 transition-opacity duration-300 ease-in-out">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
+        <!-- Icon and Title -->
+        <div class="flex items-center space-x-4">
+            {% for message in messages %}
+                {% if message.tags == 'success' %}
+                    <div class="flex-shrink-0 bg-green-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                             xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                {% elif message.tags == 'error' %}
+                    <div class="flex-shrink-0 bg-red-100 rounded-full p-3">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                             xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                {% endif %}
+            <!-- Message Content -->
+            <div>
+                <h3 class="text-lg font-semibold {% if message.tags == 'success' %}text-green-600{% elif message.tags == 'error' %}text-red-600{% endif %}">
+                    {{ message.tags|title }}
+                </h3>
+                <p class="text-gray-700 mt-1">{{ message }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Action Button -->
+        <div class="mt-6 text-center">
+            <button id="close-modal" class="bg-blue-500 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300">
+                ปิดหน้าต่าง
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+<div class="container mx-auto py-10 px-6">
+    <div class="bg-white rounded-lg shadow-lg p-6 ml-20">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 ">จัดการพนักงาน</h1>
+        <!-- Search Form -->
+                <form method="get" class="flex items-center space-x-2 mb-6">
+                    <input type="text" name="search" placeholder="ค้นหาพนักงาน..." value="{{ search_query }}"
+                           class="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500">
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300">
+                        ค้นหา
+                    </button>
+                </form>
+
+        <!-- Add Employee Button -->
+        <div class="flex justify-start mb-4">
+            <a href="{% url 'add_employee' %}"
+               class="bg-green-500 text-white px-6 py-2 rounded-lg shadow hover:bg-green-600 focus:ring focus:ring-green-300">
+                + เพิ่มพนักงาน
+            </a>
+        </div>
+
+        <!-- Employees Table -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white border border-gray-300 rounded-lg">
+                <thead class="bg-yellow-500 text-white text-center">
+                <tr>
+                    <th class="px-6 py-3 font-medium">ชื่อผู้ใช้</th>
+                    <th class="px-6 py-3 font-medium">ชื่อ</th>
+                    <th class="px-6 py-3 font-medium">บทบาท</th>
+                    <th class="px-6 py-3 font-medium">ตัวเลือก</th>
+                    <th class="px-6 py-3 font-medium">ดูการทำงาน</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                {% for employee in employees %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-gray-800 text-center">{{ employee.user.username }}</td>
+                    <td class="px-6 py-4 text-gray-800 text-center">{{ employee.user.first_name }} {{ employee.user.last_name }}</td>
+                    <td class="px-6 py-4 text-gray-800 text-center">{{ employee.get_role_display_name }}</td>
+                    <td class="px-6 py-4 text-center space-x-2">
+                        <a href="{% url 'edit_employee' employee.id %}"
+                           class="text-blue-500 hover:underline">แก้ไข</a>
+                        <a href="{% url 'delete_employee' employee.id %}" class="text-red-500 hover:underline" data-delete>ลบ</a>
+                    </td>
+                    <td class="px-6 py-4 text-gray-800 text-center"><button class="text-green-500 hover:underline" data-view-performance data-employee-id="{{ employee.id }}">ดูการทำงาน</button></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="px-6 py-4 text-center text-gray-500">ไม่มีพนักงาน</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+<!-- Pagination -->
+<div class="mt-4 flex justify-center">
+    <nav class="pagination flex space-x-2">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"
+               class="px-4 py-2 border rounded bg-white text-gray-700 hover:bg-gray-100">
+                Previous
+            </a>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if num == page_obj.number %}
+                <span class="px-4 py-2 border rounded bg-yellow-500 text-white">{{ num }}</span>
+            {% elif num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %}
+                <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}"
+                   class="px-4 py-2 border rounded bg-white text-gray-700 hover:bg-gray-100">
+                    {{ num }}
+                </a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"
+               class="px-4 py-2 border rounded bg-white text-gray-700 hover:bg-gray-100">
+                Next
+            </a>
+        {% endif %}
+    </nav>
+</div>
+<<div class="container mx-auto py-10 px-6">
+    <div class="bg-white rounded-lg shadow-lg p-6 ml-20">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">พนักงานที่ทำยอดขายและออเดอร์เยอะที่สุด</h2>
+        <!-- Summary Section -->
+        <section class="mt-6 grid md:grid-cols-2 gap-6 ml-20 mb-4 text-center">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-bold text-gray-800">พนักงานที่ทำยอดขายได้เยอะที่สุด</h3>
+                <p id="topSalesEmployee" class="text-lg font-semibold text-green-600">
+                    {{ top_sales_employee.user.first_name }} {{ top_sales_employee.user.last_name }} ({{ top_sales_employee.total_sales }} บาท)
+                </p>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-bold text-gray-800">พนักงานที่ทำออเดอร์ได้เยอะที่สุด</h3>
+                <p id="topOrdersEmployee" class="text-lg font-semibold text-blue-600">
+                    {{ top_orders_employee.user.first_name }} {{ top_orders_employee.user.last_name }} ({{ top_orders_employee.total_orders }} ออเดอร์)
+                </p>
+            </div>
+        </section>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2 text-center">ยอดขายรวม (บาท)</h3>
+            <canvas id="topSalesChart"></canvas>
+        </div>
+        <div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2 text-center">จำนวนออเดอร์</h3>
+            <canvas id="topOrdersChart"></canvas>
+        </div>
+    </div>
+</div>
+</div>
+<<div id="deleteModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-1/3 max-w-sm transform transition-transform scale-95">
+        <!-- Modal Header -->
+        <h2 class="text-2xl font-extrabold text-gray-800 mb-4 text-center">
+            ยืนยันการลบ
+        </h2>
+
+        <!-- Modal Content -->
+        <p class="text-gray-600 text-center mb-6">
+            คุณแน่ใจที่จะลบพนักงานนี้หรือไม่? การลบนี้ไม่สามารถย้อนกลับได้
+        </p>
+
+        <!-- Buttons -->
+        <div class="flex justify-center space-x-4">
+            <!-- Cancel Button -->
+            <button id="cancelButton" 
+                    class="bg-gray-500 text-white px-6 py-2 rounded-lg shadow hover:bg-gray-600 focus:ring focus:ring-gray-300 transition">
+                ยกเลิก
+            </button>
+            <!-- Confirm Button -->
+            <button id="confirmButton" 
+                    class="bg-red-500 text-white px-6 py-2 rounded-lg shadow hover:bg-red-600 focus:ring focus:ring-red-300 transition">
+                ลบ
+            </button>
+        </div>
+    </div>
+</div>
+</div>
+<div id="performanceModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-2/3 max-w-4xl transform transition-transform scale-95">
+        <!-- Modal Header -->
+        <h2 class="text-2xl font-extrabold text-gray-800 mb-4 text-center">รายละเอียดการทำงาน</h2>
+
+        <!-- Date Range Selection -->
+        <div class="flex justify-center mb-4">
+            
+            <button class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300 transition mr-2" data-range="today">วันนี้</button>
+            <button class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300 transition mr-2" data-range="week">สัปดาห์นี้</button>
+            <button class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300 transition mr-2" data-range="month">เดือนนี้</button>
+            <input type="date" id="startDate" class="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 mr-2">
+            <input type="date" id="endDate" class="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 mr-2">
+            <button id="customRangeButton" class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300 transition mr-2">เลือกช่วงเวลา</button>
+        </div>
+
+        <!-- Modal Content -->
+        <div id="performanceContent" class="text-gray-600 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Total Orders -->
+                <div class="bg-blue-100 p-4 rounded-lg shadow text-center">
+                    <h3 class="text-lg font-bold text-blue-800">จำนวนออเดอร์</h3>
+                    <p id="totalOrders" class="text-2xl font-semibold text-blue-800">0</p><p class="text-lg font-bold text-blue-800">ออเดอร์</p>
+                </div>
+                <!-- Total Revenue -->
+                <div class="bg-green-100 p-4 rounded-lg shadow text-center">
+                    <h3 class="text-lg font-bold text-green-800">ยอดขายรวม</h3>
+                    <p id="totalRevenue" class="text-2xl font-semibold text-green-800">0</p><p class="text-lg font-bold text-green-800">บาท</p>
+                </div>
+                <!-- Average Order Value -->
+                <div class="bg-yellow-100 p-4 rounded-lg shadow text-center">
+                    <h3 class="text-lg font-bold text-yellow-800">มูลค่าเฉลี่ยต่อออเดอร์</h3>
+                    <p id="averageOrderValue" class="text-2xl font-semibold text-yellow-800">0</p><p class="text-lg font-bold text-yellow-800">บาท</p>
+                </div>
+                <!-- Chart Placeholder -->
+                <div class="bg-white p-4 rounded-lg shadow col-span-2">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-center space-x-4">
+            <!-- Close Button -->
+            <button id="closePerformanceModal"
+                    class="bg-gray-500 text-white px-6 py-2 rounded-lg shadow hover:bg-gray-600 focus:ring focus:ring-gray-300 transition">
+                ปิด
+            </button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const deleteLinks = document.querySelectorAll('a[data-delete]');
+        const deleteModal = document.getElementById('deleteModal');
+        const cancelButton = document.getElementById('cancelButton');
+        const confirmButton = document.getElementById('confirmButton');
+        const closeModalBtn = document.getElementById('close-modal');
+        document.getElementById('close-modal')?.addEventListener('click', function () {
+            document.getElementById('modal').style.display = 'none';
+            window.location.reload();
+        });
+        let deleteUrl = '';
+
+        deleteLinks.forEach(link => {
+            link.addEventListener('click', function (event) {
+                event.preventDefault();
+                deleteUrl = this.href;
+                deleteModal.classList.remove('hidden');
+            });
+        });
+
+        cancelButton.addEventListener('click', function () {
+            deleteModal.classList.add('hidden');
+        });
+
+        confirmButton.addEventListener('click', function () {
+            window.location.href = deleteUrl;
+        });
+    });
+document.addEventListener('DOMContentLoaded', function () {
+    const viewPerformanceButtons = document.querySelectorAll('button[data-view-performance]');
+    const performanceModal = document.getElementById('performanceModal');
+    const closePerformanceModal = document.getElementById('closePerformanceModal');
+    const totalOrders = document.getElementById('totalOrders');
+    const totalRevenue = document.getElementById('totalRevenue');
+    const averageOrderValue = document.getElementById('averageOrderValue');
+    const performanceChart = document.getElementById('performanceChart').getContext('2d');
+    const rangeButtons = document.querySelectorAll('button[data-range]');
+    const customRangeButton = document.getElementById('customRangeButton');
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    let chart;
+    let activeEmployeeId = null;
+
+    function fetchPerformanceData(employeeId, range, startDate, endDate) {
+        let url = `/employee_performance/${employeeId}/?range=${range}`;
+        if (startDate && endDate) {
+            url += `&start_date=${startDate}&end_date=${endDate}`;
+        }
+        console.log(`Fetching data from: ${url}`);
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Data received:', data);
+                totalOrders.textContent = data.total_orders;
+                totalRevenue.textContent = data.total_revenue;
+                averageOrderValue.textContent = Number(data.average_order_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                if (chart) {
+                    chart.destroy();
+                }
+
+                chart = new Chart(performanceChart, {
+                    type: 'bar',
+                    data: {
+                        labels: ['จำนวนออเดอร์', 'ยอดขายรวม', 'มูลค่าเฉลี่ยต่อออเดอร์'],
+                        datasets: [{
+                            label: 'Performance',
+                            data: [data.total_orders, data.total_revenue, data.average_order_value],
+                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
+                            borderColor: ['#3b82f6', '#10b981', '#f59e0b'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+
+                performanceModal.classList.remove('hidden');
+            })
+            .catch(error => console.error('Error fetching performance data:', error));
+    }
+
+    viewPerformanceButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            activeEmployeeId = this.dataset.employeeId;
+            console.log(`View performance for employee ID: ${activeEmployeeId}`);
+            fetchPerformanceData(activeEmployeeId, 'today');
+            performanceModal.classList.remove('hidden');
+        });
+    });
+
+    rangeButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            const range = this.dataset.range;
+            console.log(`Selected range: ${range}`);
+            if (activeEmployeeId) {
+                fetchPerformanceData(activeEmployeeId, range);
+            }
+        });
+    });
+
+    customRangeButton.addEventListener('click', function () {
+        if (activeEmployeeId) {
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value;
+            console.log(`Custom range: ${startDate} to ${endDate}`);
+            fetchPerformanceData(activeEmployeeId, 'custom', startDate, endDate);
+        }
+    });
+
+    closePerformanceModal.addEventListener('click', function () {
+        performanceModal.classList.add('hidden');
+    });
+});
+document.addEventListener('DOMContentLoaded', function () {
+    const topSalesChartCtx = document.getElementById('topSalesChart').getContext('2d');
+    const topOrdersChartCtx = document.getElementById('topOrdersChart').getContext('2d');
+    let topSalesChart;
+    let topOrdersChart;
+
+    fetch('/top_employees/')
+        .then(response => response.json())
+        .then(data => {
+            const employeeNames = data.map(employee => employee.name);
+            const totalSales = data.map(employee => employee.total_sales);
+            const totalOrders = data.map(employee => employee.total_orders);
+
+            if (topSalesChart) {
+                topSalesChart.destroy();
+            }
+            if (topOrdersChart) {
+                topOrdersChart.destroy();
+            }
+
+            topSalesChart = new Chart(topSalesChartCtx, {
+                type: 'bar',
+                data: {
+                    labels: employeeNames,
+                    datasets: [{
+                        label: 'ยอดขายรวม (บาท)',
+                        data: totalSales,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            topOrdersChart = new Chart(topOrdersChartCtx, {
+                type: 'bar',
+                data: {
+                    labels: employeeNames,
+                    datasets: [{
+                        label: 'จำนวนออเดอร์',
+                        data: totalOrders,
+                        backgroundColor: 'rgba(255, 206, 86, 0.6)',
+                        borderColor: 'rgba(255, 206, 86, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => console.error('Error fetching top employees data:', error));
+});
+</script>

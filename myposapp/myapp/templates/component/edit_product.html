@@ -7,6 +7,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Product</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Kanit', sans-serif;
@@ -14,101 +16,123 @@
     </style>
 </head>
 
-<body class="bg-gray-50">
-    <div class="container mx-auto p-8 max-w-4xl bg-white rounded-xl shadow-lg">
-        <h2 class="text-3xl font-semibold text-gray-800 mb-8 text-center">Edit Product</h2>
+<body class="bg-gray-50 font-kanit">
+    <div class="container mx-auto p-6">
+        <!-- Title -->
+        <h1 class="text-3xl font-semibold text-gray-800 mb-6 ml-20">แก้ไขโปรดักส์ <span class="text-blue-500">{{ product.product_name }}</span></h1>
 
-        <form action="{% url 'edit_product' product.id %}" method="POST" enctype="multipart/form-data" class="space-y-6">
-            {% csrf_token %}
+        <!-- Edit Product Form -->
+        <div class="bg-white p-8 rounded-lg shadow-md ml-20">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6">รายละเอียดโปรดักส์</h2>
+            <form action="{% url 'edit_product' product.id %}" method="POST" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
 
-            <!-- Product Name -->
-            <div>
-                <label for="product_name" class="block text-sm font-medium text-gray-700">Product Name</label>
-                <input type="text" id="product_name" name="product_name" value="{{ product.product_name }}"
-                    class="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent" required>
-            </div>
-
-            <!-- Description -->
-            <div>
-                <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
-                <textarea id="description" name="description" class="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                    rows="4">{{ product.description }}</textarea>
-            </div>
-
-            <!-- Price -->
-            <div>
-                <label for="price" class="block text-sm font-medium text-gray-700">Price (฿)</label>
-                <input type="number" id="price" name="price" value="{{ product.price }}" class="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent" step="0.01" required>
-            </div>
-
-            <!-- Category -->
-            <div>
-                <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
-                <select name="category" id="category" class="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
-                    {% for category in form.fields.category.queryset %}
-                        <option value="{{ category.id }}" {% if category.id == product.category.id %} selected {% endif %}>{{ category.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Options -->
-            <div id="options-section">
-                <label for="options" class="block text-sm font-medium text-gray-700">Product Options</label>
-                <div id="options-list">
-                    {% for option in options %}
-                        <div class="flex gap-4 mt-2 option-container">
-                            <input type="text" name="option_name[]" value="{{ option.name }}" placeholder="Option Name" class="border rounded p-2 flex-1 option-name" required>
-                            <input type="number" name="option_price[]" value="{{ option.price }}" placeholder="Price" class="border rounded p-2 option-price" step="0.01" min="0" required>
-                            <button type="button" class="remove-option-btn text-red-500">Remove</button>
-                        </div>
-                    {% endfor %}
+                <!-- Product Name -->
+                <div>
+                    <label for="product_name" class="block text-sm font-medium text-gray-700">ชื่อโปรดักส์</label>
+                    <input type="text" id="product_name" name="product_name" value="{{ product.product_name }}"
+                        class="mt-2 w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" required>
                 </div>
-                <button type="button" id="add-option-btn" class="bg-blue-500 text-white px-4 py-2 rounded mt-4">Add Option</button>
-            </div>
 
-            <!-- Product Image -->
-            <div>
-                <label for="img_product" class="block text-sm font-medium text-gray-700">Product Image</label>
-                <input type="file" id="img_product" name="img_product" class="w-full p-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
-                
-                {% if product.img_product %}
-                    <p class="mt-2 text-sm text-gray-500">Current Image:</p>
-                    <img src="{{ product.img_product.url }}" alt="{{ product.product_name }}" class="w-32 h-32 object-cover mt-2 rounded-md">
-                {% endif %}
-            </div>
+                <!-- Description -->
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700">คำอธิบาย</label>
+                    <textarea id="description" name="description" rows="4"
+                        class="mt-2 w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                        placeholder="ใส่คำอธิบายโปรดักส์">{{ product.description }}</textarea>
+                </div>
 
-            <div class="flex justify-end space-x-4">
-                <a href="{% url 'addmenu' %}" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-400 transition duration-200">Cancel</a>
-                <button type="submit" class="bg-yellow-500 text-white px-6 py-2 rounded-md hover:bg-yellow-600 transition duration-200">Update Product</button>
-            </div>
-        </form>
+                <!-- Price -->
+                <div>
+                    <label for="price" class="block text-sm font-medium text-gray-700">ราคา (฿)</label>
+                    <input type="number" id="price" name="price" value="{{ product.price }}" step="0.01"
+                        class="mt-2 w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" required>
+                </div>
+
+                <!-- Category -->
+                <div>
+                    <label for="category" class="block text-sm font-medium text-gray-700">หมวดหมู่</label>
+                    <select name="category" id="category"
+                        class="mt-2 w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if category.id == product.category.id %} selected {% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Options -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">ตัวเลือกสินค้า</label>
+                    <div id="options-list" class="mt-4 space-y-4">
+                        {% for option in options %}
+                            <div class="flex items-center gap-4">
+                                <input type="text" name="option_name[]" value="{{ option.name }}" placeholder="ชื่อของตัวเลือก"
+                                    class="flex-1 p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" required>
+                                <input type="number" name="option_price[]" value="{{ option.price }}" placeholder="ราคา" step="0.01" min="0"
+                                    class="p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" required>
+                                <button type="button" class="remove-option-btn text-red-600 hover:text-red-800 font-medium">
+                                    ลบ
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" id="add-option-btn"
+                        class="mt-4 bg-blue-500 text-white px-5 py-2 rounded-lg hover:bg-blue-600 shadow-md">
+                        + เพิ่มตัวเลือก
+                    </button>
+                </div>
+
+                <!-- Product Image -->
+                <div>
+                    <label for="img_product" class="block text-sm font-medium text-gray-700">รูปภาพสินค้า</label>
+                    <input type="file" id="img_product" name="img_product"
+                        class="mt-2 w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                    {% if product.img_product %}
+                        <p class="mt-4 text-sm text-gray-500">รูปปัจจุบัน:</p>
+                        <img src="{{ product.img_product.url }}" alt="{{ product.product_name }}" class="mt-2 w-40 h-40 object-cover rounded-md border">
+                    {% endif %}
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex justify-end gap-4">
+                    <a href="{% url 'addmenu' %}" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">
+                        ยกเลิก
+                    </a>
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white py-3 px-8 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                        บันทึกการเปลี่ยนแปลง
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
-        // Dynamically add options
+        // Add options dynamically
         document.getElementById('add-option-btn').addEventListener('click', () => {
             const optionsList = document.getElementById('options-list');
             const optionField = document.createElement('div');
-            optionField.className = 'flex gap-4 mt-2 option-container';
-        
+            optionField.className = 'flex items-center gap-4';
+
             optionField.innerHTML = `
-                <input type="text" name="option_name[]" placeholder="Option Name" class="border rounded p-2 flex-1 option-name" required>
-                <input type="number" name="option_price[]" placeholder="Price" class="border rounded p-2 option-price" step="0.01" min="0" required>
-                <button type="button" class="remove-option-btn text-red-500 hover:underline">Remove</button>
+                <input type="text" name="option_name[]" placeholder="ชื่อของตัวเลือก"
+                    class="flex-1 p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" required>
+                <input type="number" name="option_price[]" placeholder="ราคา" step="0.01" min="0"
+                    class="p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" required>
+                <button type="button" class="remove-option-btn text-red-600 hover:text-red-800 font-medium">ลบ</button>
             `;
-        
+
             optionsList.appendChild(optionField);
-        
-            // Add event listener for the "Remove" button
+
+            // Remove option dynamically
             optionField.querySelector('.remove-option-btn').addEventListener('click', () => {
                 optionsList.removeChild(optionField);
             });
         });
 
-        // Add event listeners to remove existing options
+        // Remove existing options
         document.querySelectorAll('.remove-option-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                const optionContainer = btn.closest('.option-container');
+                const optionContainer = btn.closest('.flex.items-center.gap-4');
                 optionContainer.remove();
             });
         });

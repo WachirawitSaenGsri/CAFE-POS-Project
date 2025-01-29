@@ -11,8 +11,8 @@ class Store(models.Model):
 
 class Member(models.Model):
     ROLE_CHOICES = (
-        ('owner', 'Owner'),
-        ('employee', 'Employee'),
+        ('owner', 'เจ้าของร้าน'),
+        ('employee', 'พนักงาน'),
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='member_profile')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='owner')
@@ -20,6 +20,8 @@ class Member(models.Model):
 
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name} ({self.user.username}) - {self.role}"
+    def get_role_display_name(self):
+        return dict(self.ROLE_CHOICES).get(self.role, self.role)
 
 # เพิ่มหมวดหมู่สินค้าเป็น model แยก
 class Category(models.Model):
@@ -102,6 +104,7 @@ class Order(models.Model):
     status = models.CharField(max_length=20, default='Pending')
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="orders", null=True, blank=True)
     products = models.ManyToManyField(Product)
+    employee = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="handled_orders")
 
     def __str__(self):
         return f"Order #{self.id}"
