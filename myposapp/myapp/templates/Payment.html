@@ -60,24 +60,26 @@
     {% include 'component/sidebar.html' %}
     {% include 'component/navbar.html' %}
 
-    <div class="container mx-auto p-6">
-        <h1 class="text-2xl font-bold mb-4 ml-20">การชำระเงินสำหรับ Order #{{ order.id }}</h1>
-        <p class="text-lg mb-4 ml-20">จำนวนเงินทั้งหมด: <strong>{{ total_order_price |floatformat:2}} ฿</strong></p>
-        <p class="ml-20 mb-1"><strong>ชื่อลูกค้า: </strong>{{ order.customer_name }}</p>
-        <p class="ml-20 mb-4"><strong>เบอร์โทรศัพท์: </strong>{{ order.customer_phone }}</p>
+<div class="container mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-4 text-center md:text-left lg:ml-24">การชำระเงินสำหรับ Order #{{ order.id }}</h1>
+    <p class="text-lg mb-4 text-center md:text-left lg:ml-24">จำนวนเงินทั้งหมด: <strong>{{ total_order_price |floatformat:2}} ฿</strong></p>
+    <p class="text-center md:text-left lg:ml-24"><strong>ชื่อลูกค้า: </strong>{{ order.customer_name }}</p>
+    <p class="text-center md:text-left mb-4 lg:ml-24"><strong>เบอร์โทรศัพท์: </strong>{{ order.customer_phone }}</p>
 
+    <!-- Layout Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:ml-24">
         <!-- Order Details Section -->
-        <div class="flex justify-between space-x-10 ml-20">
-            <div class="flex-1 bg-white shadow-lg rounded-md p-6 mb-6">
-                <h2 class="text-xl font-semibold mb-3 text-gray-800">รายละเอียดการสั่งซื้อ</h2>
-                <table class="table-auto w-full text-left border-collapse">
+        <div class="lg:col-span-2 bg-white shadow-lg rounded-md p-6">
+            <h2 class="text-xl font-semibold mb-3 text-gray-800">รายละเอียดการสั่งซื้อ</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[500px] text-left border-collapse">
                     <thead class="bg-gray-200">
                         <tr>
                             <th class="border-b py-2 px-4 text-sm font-medium text-gray-700">โปรดักส์</th>
                             <th class="border-b py-2 px-4 text-sm font-medium text-gray-700">ตัวเลือก</th>
                             <th class="border-b py-2 px-4 text-sm font-medium text-gray-700">จำนวน</th>
                             <th class="border-b py-2 px-4 text-sm font-medium text-gray-700">ราคาต่อหน่วย</th>
-                            <th class="border-b py-2 px-4 text-sm font-medium text-gray-700">ราคาสินค้ารวม</th>
+                            <th class="border-b py-2 px-4 text-sm font-medium text-gray-700">ราคารวม</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -99,19 +101,25 @@
                     </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="5" class="text-center">No products found in the order.</td>
+                            <td colspan="5" class="text-center">ไม่มีสินค้าในคำสั่งซื้อ</td>
                         </tr>
                     {% endfor %}
                     </tbody>
                 </table>
-                <div class="mt-4 text-left font-semibold">
-                    <p>ราคาสั่งซื้อทั้งหมด: <strong>{{ total_order_price |floatformat:2}} ฿</strong></p>
-                    <p>แต้มที่ได้รับ: <strong>{{ points_earned }} แต้ม</strong></p>
-                </div>
             </div>
+            <div class="mt-4 font-semibold">
+                <p>ราคารวม: <strong>{{ total_order_price |floatformat:2}} ฿</strong></p>
+                <p>แต้มที่ได้รับ: <strong>{{ points_earned }} แต้ม</strong></p>
+            </div>
+            <button id="cancel_order_button"
+                    class="w-full bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-md mt-4">
+                ยกเลิกคำสั่งซื้อ
+            </button>
+        </div>
+        
 
             <!-- Payment Form Section -->
-            <div class="w-1/3 bg-white shadow-lg rounded-md p-6 mb-6">
+            <div class="w-full bg-white shadow-lg rounded-md p-6 mb-6">
                 <h2 class="text-xl font-semibold mb-3 text-gray-800">วิธีการชำระเงิน</h2>
                 <form id="payment_form" method="POST">
                     {% csrf_token %}
@@ -142,16 +150,53 @@
                         <button type="button" onclick="addNumber(0)">0</button>
                         <button type="button" class="clear" onclick="clearAmount()">Clear</button>
                     </div>
-                    <div id="change_message" class="mt-4 text-left font-semibold text-lg text-green-600"></div>
-                    <button type="submit" id="confirm_button" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md mt-4 payment-button" disabled>
-                        ยืนยันการชำระเงิน
-                    </button>
-                    <a href="{% url 'print_receipt' order.id %}" target="_blank" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 ml-32 rounded-md">ปรื้นสลิป</a>
+                    <div id="change_message" class="mt-4 font-semibold text-lg text-green-600"></div>
+                    <div class="flex justify-center">
+                        <button type="submit" id="confirm_button"
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md mt-4 payment-button"
+                                disabled>
+                            ยืนยันการชำระเงิน
+                        </button>
+                        <a href="{% url 'print_receipt' order.id %}" target="_blank"
+                           class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md ml-4 mt-4">ปรื้นสลิป</a>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
+<!-- Confirm Cancel Order Modal -->
+<div id="confirmCancelModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden transition-opacity duration-300 ease-in-out">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md transform transition-transform scale-95">
+        <h2 class="text-2xl font-bold text-gray-800 text-center mb-4 ">ยืนยันการยกเลิก</h2>
+        <p class="text-gray-700 text-center ">คุณแน่ใจหรือไม่ว่าต้องการยกเลิกคำสั่งซื้อนี้?</p>
+        <div class="mt-6 flex justify-center space-x-4">
+            <button id="confirmCancelButton" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg shadow-md transition text-lg">ใช่, ยกเลิก</button>
+            <button id="cancelModalButton" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg shadow-md transition text-lg">ไม่</button>
+        </div>
+    </div>
+</div>
 
+<!-- Success Alert Modal -->
+<div id="successAlertModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden transition-opacity duration-300 ease-in-out">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md transform transition-transform scale-95">
+        <h2 class="text-2xl font-bold text-green-600 text-center mt-4">สำเร็จ</h2>
+        <p class="text-gray-700 text-center mt-2">คำสั่งซื้อถูกยกเลิกเรียบร้อยแล้ว</p>
+        <div class="mt-6 flex justify-center">
+            <button id="closeSuccessModalButton" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg shadow-md transition text-lg">ตกลง</button>
+        </div>
+    </div>
+</div>
+
+<!-- Error Alert Modal -->
+<div id="errorAlertModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden transition-opacity duration-300 ease-in-out">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md transform transition-transform scale-95">
+        <h2 class="text-2xl font-bold text-red-600 text-center mt-4">เกิดข้อผิดพลาด</h2>
+        <p id="errorMessage" class="text-gray-700 text-center mt-2"></p>
+        <div class="mt-6 flex justify-center">
+            <button id="closeErrorModalButton" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg shadow-md transition text-lg">ตกลง</button>
+        </div>
+    </div>
+</div>
     <script>
         document.getElementById('amount_paid').addEventListener('input', function() {
             var totalAmount = {{ total_order_price }};
@@ -178,6 +223,84 @@
             amountPaid.value = '';
             amountPaid.dispatchEvent(new Event('input'));
         }
+
+document.addEventListener('DOMContentLoaded', function () {
+    const confirmCancelModal = document.getElementById('confirmCancelModal');
+    const successAlertModal = document.getElementById('successAlertModal');
+    const errorAlertModal = document.getElementById('errorAlertModal');
+    const errorMessage = document.getElementById('errorMessage');
+
+    // ฟังก์ชันเปิด Modal
+    function openModal(modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('opacity-100', 'scale-100');
+    }
+
+    // ฟังก์ชันปิด Modal
+    function closeModal(modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('opacity-100', 'scale-100');
+    }
+
+    // เปิด Modal ยืนยันการยกเลิก
+    document.getElementById('cancel_order_button').addEventListener('click', function () {
+        openModal(confirmCancelModal);
+    });
+
+    // ปิด Modal เมื่อกดปุ่ม 'ไม่'
+    document.getElementById('cancelModalButton').addEventListener('click', function () {
+        closeModal(confirmCancelModal);
+    });
+
+    // ปิด Modal เมื่อกดปุ่ม Escape
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeModal(confirmCancelModal);
+            closeModal(successAlertModal);
+            closeModal(errorAlertModal);
+        }
+    });
+
+    // ยืนยันการยกเลิกคำสั่งซื้อ
+    document.getElementById('confirmCancelButton').addEventListener('click', async function () {
+        try {
+            const response = await fetch(`/cancel_order/{{ order.id }}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+            closeModal(confirmCancelModal);
+
+            if (data.status === 'success') {
+                openModal(successAlertModal);
+            } else {
+                errorMessage.innerText = data.message;
+                openModal(errorAlertModal);
+            }
+        } catch (error) {
+            closeModal(confirmCancelModal);
+            errorMessage.innerText = 'เกิดข้อผิดพลาด: ' + error;
+            openModal(errorAlertModal);
+        }
+    });
+
+    // ปิด Modal เมื่อกดปุ่ม 'ตกลง' ใน Success Modal และรีเฟรชหน้า
+    document.getElementById('closeSuccessModalButton').addEventListener('click', function () {
+        closeModal(successAlertModal);
+        setTimeout(() => {
+            window.location.href = '/home/';
+        }, 500);
+    });
+
+    // ปิด Modal เมื่อกดปุ่ม 'ตกลง' ใน Error Modal
+    document.getElementById('closeErrorModalButton').addEventListener('click', function () {
+        closeModal(errorAlertModal);
+    });
+});
     </script>
 </body>
 </html>

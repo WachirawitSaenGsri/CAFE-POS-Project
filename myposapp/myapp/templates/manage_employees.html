@@ -145,11 +145,27 @@
         {% endif %}
     </nav>
 </div>
-<<div class="container mx-auto py-10 px-6">
+<div class="container mx-auto py-10 px-6">
     <div class="bg-white rounded-lg shadow-lg p-6 ml-20">
-    <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">พนักงานที่ทำยอดขายและออเดอร์เยอะที่สุด</h2>
-        <!-- Summary Section -->
-        <section class="mt-6 grid md:grid-cols-2 gap-6 ml-20 mb-4 text-center">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">พนักงานที่ทำยอดขายและออเดอร์เยอะที่สุด</h2>
+
+        <!-- 🔹 ตัวกรองช่วงเวลา -->
+        <form id="dateFilterForm" class="flex justify-center mb-6 space-x-4">
+            <select id="filterRange" name="filter" class="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500">
+                <option value="today">วันนี้</option>
+                <option value="week">สัปดาห์นี้</option>
+                <option value="month">เดือนนี้</option>
+                <option value="custom">กำหนดเอง</option>
+            </select>
+            <input type="date" id="startDate" name="start_date" class="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 hidden">
+            <input type="date" id="endDate" name="end_date" class="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 hidden">
+            <button type="button" id="filterButton" class="bg-blue-500 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300">
+                กรองข้อมูล
+            </button>
+        </form>
+
+        <!-- 🔹 สรุปพนักงานที่ทำยอดขายเยอะที่สุด -->
+        <section class="mt-6 grid md:grid-cols-2 gap-6 text-center mb-6">
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-lg font-bold text-gray-800">พนักงานที่ทำยอดขายได้เยอะที่สุด</h3>
                 <p id="topSalesEmployee" class="text-lg font-semibold text-green-600">
@@ -163,14 +179,17 @@
                 </p>
             </div>
         </section>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-            <h3 class="text-xl font-bold text-gray-800 mb-2 text-center">ยอดขายรวม (บาท)</h3>
-            <canvas id="topSalesChart"></canvas>
-        </div>
-        <div>
-            <h3 class="text-xl font-bold text-gray-800 mb-2 text-center">จำนวนออเดอร์</h3>
-            <canvas id="topOrdersChart"></canvas>
+
+        <!-- 🔹 กราฟแสดงผล -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2 text-center">ยอดขายรวม (บาท)</h3>
+                <canvas id="topSalesChart"></canvas>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2 text-center">จำนวนออเดอร์</h3>
+                <canvas id="topOrdersChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
@@ -210,14 +229,23 @@
 
         <!-- Date Range Selection -->
         <div class="flex justify-center mb-4">
-            
-            <button class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300 transition mr-2" data-range="today">วันนี้</button>
-            <button class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300 transition mr-2" data-range="week">สัปดาห์นี้</button>
-            <button class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300 transition mr-2" data-range="month">เดือนนี้</button>
-            <input type="date" id="startDate" class="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 mr-2">
-            <input type="date" id="endDate" class="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 mr-2">
-            <button id="customRangeButton" class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300 transition mr-2">เลือกช่วงเวลา</button>
+            <select id="performanceRange" name="performance_range"
+                    class="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500">
+                <option value="today">วันนี้</option>
+                <option value="week">สัปดาห์นี้</option>
+                <option value="month">เดือนนี้</option>
+                <option value="custom">กำหนดเอง</option>
+            </select>
+            <input type="date" id="performanceStartDate" name="start_date"
+                   class="hidden px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 ml-2">
+            <input type="date" id="performanceEndDate" name="end_date"
+                   class="hidden px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 ml-2">
+            <button id="applyPerformanceFilter"
+                    class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 focus:ring focus:ring-blue-300 ml-2">
+                ค้นหา
+            </button>
         </div>
+
 
         <!-- Modal Content -->
         <div id="performanceContent" class="text-gray-600 mb-6">
@@ -236,10 +264,6 @@
                 <div class="bg-yellow-100 p-4 rounded-lg shadow text-center">
                     <h3 class="text-lg font-bold text-yellow-800">มูลค่าเฉลี่ยต่อออเดอร์</h3>
                     <p id="averageOrderValue" class="text-2xl font-semibold text-yellow-800">0</p><p class="text-lg font-bold text-yellow-800">บาท</p>
-                </div>
-                <!-- Chart Placeholder -->
-                <div class="bg-white p-4 rounded-lg shadow col-span-2">
-                    <canvas id="performanceChart"></canvas>
                 </div>
             </div>
         </div>
@@ -286,161 +310,192 @@
         });
     });
 document.addEventListener('DOMContentLoaded', function () {
-    const viewPerformanceButtons = document.querySelectorAll('button[data-view-performance]');
-    const performanceModal = document.getElementById('performanceModal');
-    const closePerformanceModal = document.getElementById('closePerformanceModal');
-    const totalOrders = document.getElementById('totalOrders');
-    const totalRevenue = document.getElementById('totalRevenue');
-    const averageOrderValue = document.getElementById('averageOrderValue');
-    const performanceChart = document.getElementById('performanceChart').getContext('2d');
-    const rangeButtons = document.querySelectorAll('button[data-range]');
-    const customRangeButton = document.getElementById('customRangeButton');
-    const startDateInput = document.getElementById('startDate');
-    const endDateInput = document.getElementById('endDate');
-    let chart;
+    const performanceRange = document.getElementById('performanceRange');
+    const startDateInput = document.getElementById('performanceStartDate');
+    const endDateInput = document.getElementById('performanceEndDate');
+    const applyFilterButton = document.getElementById('applyPerformanceFilter');
     let activeEmployeeId = null;
 
-    function fetchPerformanceData(employeeId, range, startDate, endDate) {
+    // ฟังก์ชันดึงข้อมูลการทำงานพนักงาน
+    function fetchPerformanceData(employeeId, range, startDate = null, endDate = null) {
         let url = `/employee_performance/${employeeId}/?range=${range}`;
         if (startDate && endDate) {
             url += `&start_date=${startDate}&end_date=${endDate}`;
         }
-        console.log(`Fetching data from: ${url}`);
+
         fetch(url)
             .then(response => response.json())
             .then(data => {
-                console.log('Data received:', data);
-                totalOrders.textContent = data.total_orders;
-                totalRevenue.textContent = data.total_revenue;
-                averageOrderValue.textContent = Number(data.average_order_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-                if (chart) {
-                    chart.destroy();
-                }
-
-                chart = new Chart(performanceChart, {
-                    type: 'bar',
-                    data: {
-                        labels: ['จำนวนออเดอร์', 'ยอดขายรวม', 'มูลค่าเฉลี่ยต่อออเดอร์'],
-                        datasets: [{
-                            label: 'Performance',
-                            data: [data.total_orders, data.total_revenue, data.average_order_value],
-                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
-                            borderColor: ['#3b82f6', '#10b981', '#f59e0b'],
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-
-                performanceModal.classList.remove('hidden');
+                document.getElementById('totalOrders').textContent = data.total_orders;
+                document.getElementById('totalRevenue').textContent = data.total_revenue;
+                document.getElementById('averageOrderValue').textContent = Number(data.average_order_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             })
             .catch(error => console.error('Error fetching performance data:', error));
     }
 
-    viewPerformanceButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            activeEmployeeId = this.dataset.employeeId;
-            console.log(`View performance for employee ID: ${activeEmployeeId}`);
-            fetchPerformanceData(activeEmployeeId, 'today');
-            performanceModal.classList.remove('hidden');
-        });
-    });
-
-    rangeButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            const range = this.dataset.range;
-            console.log(`Selected range: ${range}`);
-            if (activeEmployeeId) {
-                fetchPerformanceData(activeEmployeeId, range);
-            }
-        });
-    });
-
-    customRangeButton.addEventListener('click', function () {
-        if (activeEmployeeId) {
-            const startDate = startDateInput.value;
-            const endDate = endDateInput.value;
-            console.log(`Custom range: ${startDate} to ${endDate}`);
-            fetchPerformanceData(activeEmployeeId, 'custom', startDate, endDate);
+    // ซ่อนฟิลด์วันที่ จนกว่าจะเลือก "กำหนดเอง"
+    performanceRange.addEventListener('change', function () {
+        if (this.value === 'custom') {
+            startDateInput.classList.remove('hidden');
+            endDateInput.classList.remove('hidden');
+        } else {
+            startDateInput.classList.add('hidden');
+            endDateInput.classList.add('hidden');
         }
     });
 
-    closePerformanceModal.addEventListener('click', function () {
-        performanceModal.classList.add('hidden');
+    // ดึงข้อมูลเมื่อคลิกปุ่ม "ค้นหา"
+    applyFilterButton.addEventListener('click', function () {
+        if (!activeEmployeeId) return;
+
+        const selectedRange = performanceRange.value;
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+
+        if (selectedRange === 'custom' && (!startDate || !endDate)) {
+            alert("โปรดเลือกวันที่เริ่มต้นและสิ้นสุด");
+            return;
+        }
+
+        fetchPerformanceData(activeEmployeeId, selectedRange, startDate, endDate);
+    });
+
+    // เปิด Modal และดึงข้อมูลพนักงาน
+    document.querySelectorAll('button[data-view-performance]').forEach(button => {
+        button.addEventListener('click', function () {
+            activeEmployeeId = this.dataset.employeeId;
+            fetchPerformanceData(activeEmployeeId, 'today');
+            document.getElementById('performanceModal').classList.remove('hidden');
+        });
+    });
+
+    // ปิด Modal
+    document.getElementById('closePerformanceModal').addEventListener('click', function () {
+        document.getElementById('performanceModal').classList.add('hidden');
     });
 });
 document.addEventListener('DOMContentLoaded', function () {
+    const filterRange = document.getElementById('filterRange');
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const filterButton = document.getElementById('filterButton');
+    const topSalesEmployeeText = document.getElementById('topSalesEmployee');
+    const topOrdersEmployeeText = document.getElementById('topOrdersEmployee');
+
+    // กราฟยอดขายและจำนวนออเดอร์
     const topSalesChartCtx = document.getElementById('topSalesChart').getContext('2d');
     const topOrdersChartCtx = document.getElementById('topOrdersChart').getContext('2d');
     let topSalesChart;
     let topOrdersChart;
 
-    fetch('/top_employees/')
-        .then(response => response.json())
-        .then(data => {
-            const employeeNames = data.map(employee => employee.name);
-            const totalSales = data.map(employee => employee.total_sales);
-            const totalOrders = data.map(employee => employee.total_orders);
+    function fetchFilteredData(filter, startDate, endDate) {
+        let url = `/top_employees/?filter=${filter}`;
+        if (startDate && endDate) {
+            url += `&start_date=${startDate}&end_date=${endDate}`;
+        }
 
-            if (topSalesChart) {
-                topSalesChart.destroy();
-            }
-            if (topOrdersChart) {
-                topOrdersChart.destroy();
-            }
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    const topSalesEmployee = data[0];
+                    const topOrdersEmployee = data[0];
 
-            topSalesChart = new Chart(topSalesChartCtx, {
-                type: 'bar',
-                data: {
-                    labels: employeeNames,
-                    datasets: [{
-                        label: 'ยอดขายรวม (บาท)',
-                        data: totalSales,
-                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
+                    topSalesEmployeeText.innerHTML = `${topSalesEmployee.name} (${topSalesEmployee.total_sales} บาท)`;
+                    topOrdersEmployeeText.innerHTML = `${topOrdersEmployee.name} (${topOrdersEmployee.total_orders} ออเดอร์)`;
+
+                    // อัปเดตกราฟ
+                    updateCharts(data);
+                } else {
+                    topSalesEmployeeText.innerHTML = "ไม่มีข้อมูล";
+                    topOrdersEmployeeText.innerHTML = "ไม่มีข้อมูล";
+                }
+            })
+            .catch(error => console.error('Error fetching top employees data:', error));
+    }
+
+    function updateCharts(data) {
+        const employeeNames = data.map(employee => employee.name);
+        const totalSales = data.map(employee => employee.total_sales);
+        const totalOrders = data.map(employee => employee.total_orders);
+
+        if (topSalesChart) {
+            topSalesChart.destroy();
+        }
+        if (topOrdersChart) {
+            topOrdersChart.destroy();
+        }
+
+        topSalesChart = new Chart(topSalesChartCtx, {
+            type: 'bar',
+            data: {
+                labels: employeeNames,
+                datasets: [{
+                    label: 'ยอดขายรวม (บาท)',
+                    data: totalSales,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
                     }
                 }
-            });
+            }
+        });
 
-            topOrdersChart = new Chart(topOrdersChartCtx, {
-                type: 'bar',
-                data: {
-                    labels: employeeNames,
-                    datasets: [{
-                        label: 'จำนวนออเดอร์',
-                        data: totalOrders,
-                        backgroundColor: 'rgba(255, 206, 86, 0.6)',
-                        borderColor: 'rgba(255, 206, 86, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
+        topOrdersChart = new Chart(topOrdersChartCtx, {
+            type: 'bar',
+            data: {
+                labels: employeeNames,
+                datasets: [{
+                    label: 'จำนวนออเดอร์',
+                    data: totalOrders,
+                    backgroundColor: 'rgba(255, 206, 86, 0.6)',
+                    borderColor: 'rgba(255, 206, 86, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
                     }
                 }
-            });
-        })
-        .catch(error => console.error('Error fetching top employees data:', error));
+            }
+        });
+    }
+
+    // แสดง/ซ่อนช่องวันที่เมื่อเลือก "กำหนดเอง"
+    filterRange.addEventListener('change', function () {
+        if (filterRange.value === 'custom') {
+            startDateInput.classList.remove('hidden');
+            endDateInput.classList.remove('hidden');
+        } else {
+            startDateInput.classList.add('hidden');
+            endDateInput.classList.add('hidden');
+        }
+    });
+
+    // ดึงข้อมูลเมื่อคลิกปุ่ม "กรองข้อมูล"
+    filterButton.addEventListener('click', function () {
+        const selectedFilter = filterRange.value;
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+
+        if (selectedFilter === 'custom' && (!startDate || !endDate)) {
+            return;
+        }
+
+        fetchFilteredData(selectedFilter, startDate, endDate);
+    });
+
+    // โหลดข้อมูลเมื่อหน้าเว็บเปิด
+    fetchFilteredData('today');
 });
 </script>

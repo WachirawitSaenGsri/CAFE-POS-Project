@@ -22,97 +22,101 @@
             <h1 class="text-3xl font-bold text-gray-800">รายการสั่งซื้อ</h1>
             <p class="text-gray-600">จัดการคำสั่งซื้อและดูรายละเอียดสินค้า</p>
 
-        <!-- Content Layout -->
-        <div class="flex flex-col lg:flex-row gap-6">
-            <!-- Order List Section -->
-            <div class="lg:w-full">
-                <div class="bg-white rounded-lg shadow-lg p-6 mt-6">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">รายการทั้งหมด</h2>
-                    <table class="w-full text-sm text-left text-gray-500 border-collapse">
-                        <thead class="text-xs text-gray-700 uppercase bg-yellow-500 text-white">
-                            <tr>
-                                <th class="px-6 py-4 text-lg text-center">Order</th>
-                                <th class="px-6 py-4 text-lg text-center">สินค้า</th>
-                                <th class="px-6 py-4 text-lg text-center">จำนวน</th>
-                                <th class="px-6 py-4 text-lg text-center">การจัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for order in page_obj %}
-                            <tr class="bg-white border-b hover:bg-gray-100 text-md text-center">
-                                <td class="px-6 py-4 text-gray-800 text-lg">{{ order.id }}</td>
-                                <td class="py-4 px-6 text-center">
-                                    {% for detail in order.order_details.all %}
-                                    <div class="flex justify-center items-center gap-2">
-                                        <!-- Product Name and Quantity -->
-                                        <span class="text-gray-800 text-md">{{ detail.product.product_name }} x {{ detail.quantity }}</span>
-                                        <!-- Options -->
-                                        {% for option in detail.options.all %}
-                                        <span class="text-sm text-gray-600">| {{ option.name }}</span>
-                                        {% endfor %}
-                                    </div>
-                                    {% endfor %}
-                                </td>
-                                <td class="py-4 px-6 text-black">{{ order.total_quantity }} ชิ้น</td>
-                                <td class="py-4 px-6 flex justify-center gap-4">
-                                    <button onclick="showOrderDetail({{ order.id }})"
-                                            class="bg-yellow-500 hover:bg-yellow-600 text-white text-md px-4 py-2 rounded-md shadow-md transition-all">
-                                        ดูรายละเอียด
-                                    </button>
-                                    <button onclick="completeOrder({{ order.id }})"
-                                            class="bg-green-500 hover:bg-green-600 text-white text-md px-4 py-2 rounded-md shadow-md transition-all">
-                                        เสร็จสิ้น
-                                    </button>
-                                </td>
-                            </tr>
+<!-- Content Layout -->
+<div class="flex flex-col lg:flex-row gap-6">
+<!-- Order List Section -->
+<div class="lg:w-full overflow-x-auto">
+    <div class="bg-white rounded-lg shadow-lg p-6 mt-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">รายการทั้งหมด</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[600px] text-sm text-left text-gray-500 border-collapse">
+                <thead class="text-xs text-gray-700 uppercase bg-yellow-500 text-white">
+                    <tr>
+                        <th class="px-6 py-4 text-lg text-center">Order</th>
+                        <th class="px-6 py-4 text-lg text-center">สินค้า</th>
+                        <th class="px-6 py-4 text-lg text-center">จำนวน</th>
+                        <th class="px-6 py-4 text-lg text-center">การจัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in page_obj %}
+                    <tr class="bg-white border-b hover:bg-gray-100 text-md text-center">
+                        <td class="px-6 py-4 text-gray-800 text-lg">{{ order.id }}</td>
+                        <td class="py-4 px-6 text-center">
+                            {% for detail in order.order_details.all %}
+                            <div class="flex flex-wrap justify-center items-center gap-2">
+                                <span class="text-gray-800 text-md">{{ detail.product.product_name }} x {{ detail.quantity }}</span>
+                                {% for option in detail.options.all %}
+                                <span class="text-sm text-gray-600">| {{ option.name }}</span>
+                                {% endfor %}
+                            </div>
                             {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                    <!-- Pagination -->
-                    <div class="mt-4 flex justify-center">
-                        <nav class="flex gap-2">
-                            {% if page_obj.has_previous %}
-                            <a href="?page={{ page_obj.previous_page_number }}"
-                               class="px-4 py-2 border rounded-md bg-gray-200 hover:bg-gray-300 text-gray-700">
-                                Previous
-                            </a>
-                            {% endif %}
-                            {% for num in page_obj.paginator.page_range %}
-                            <a href="?page={{ num }}"
-                               class="px-4 py-2 border rounded-md {% if page_obj.number == num %}bg-yellow-500 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
-                                {{ num }}
-                            </a>
-                            {% endfor %}
-                            {% if page_obj.has_next %}
-                            <a href="?page={{ page_obj.next_page_number }}"
-                               class="px-4 py-2 border rounded-md bg-gray-200 hover:bg-gray-300 text-gray-700">
-                                Next
-                            </a>
-                            {% endif %}
-                        </nav>
-                    </div>
-                </div>
-            </div>
+                        </td>
+                        <td class="py-4 px-6 text-black">{{ order.total_quantity }} ชิ้น</td>
+                        <td class="py-4 px-6 flex flex-wrap justify-center gap-2">
+                            <button onclick="showOrderDetail({{ order.id }})"
+                                    class="bg-yellow-500 hover:bg-yellow-600 text-white text-md px-3 py-2 rounded-md shadow-md">
+                                ดูรายละเอียด
+                            </button>
+                            <button onclick="completeOrder({{ order.id }})"
+                                    class="bg-green-500 hover:bg-green-600 text-white text-md px-3 py-2 rounded-md shadow-md">
+                                เสร็จสิ้น
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- Pagination -->
+        <div class="mt-4 flex justify-center">
+            <nav class="flex flex-wrap gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}"
+                   class="px-4 py-2 border rounded-md bg-gray-200 hover:bg-gray-300 text-gray-700">
+                    Previous
+                </a>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                <a href="?page={{ num }}"
+                   class="px-4 py-2 border rounded-md {% if page_obj.number == num %}bg-yellow-500 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+                    {{ num }}
+                </a>
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}"
+                   class="px-4 py-2 border rounded-md bg-gray-200 hover:bg-gray-300 text-gray-700">
+                    Next
+                </a>
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+</div>
 
-            <!-- Order Detail Section -->
-            <div id="order-detail" class="lg:w-1/3 bg-white rounded-lg shadow-lg p-6 hidden">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">รายละเอียดคำสั่งซื้อ</h2>
-                <div>
-                    <p class="text-gray-700"><strong>Order ID:</strong> <span id="order-id"></span></p>
-                    <p class="text-gray-700"><strong>ชื่อลูกค้า:</strong> <span id="customer-name"></span></p>
-                    <p class="text-gray-700"><strong>เบอร์โทร:</strong> <span id="customer-phone"></span></p>
+        <!-- Order Detail Modal -->
+        <div id="order-detail-modal"
+             class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+                <h2 class="text-2xl font-semibold text-gray-800 text-center mb-4">รายละเอียดคำสั่งซื้อ</h2>
+
+                <div class="text-gray-700 space-y-2">
+                    <p><strong>Order ID:</strong> <span id="order-id"></span></p>
+                    <p><strong>ชื่อลูกค้า:</strong> <span id="customer-name"></span></p>
+                    <p><strong>เบอร์โทร:</strong> <span id="customer-phone"></span></p>
                     <div id="order-items" class="mt-4 text-gray-700"></div>
                     <p class="mt-4 text-lg font-semibold"><strong>ราคารวม:</strong> <span id="total-price"></span> ฿</p>
-                    <p><strong>สถานะการชำระ:</strong> <span id="payment-status" class="text-green-500">ชำระเรียบร้อย</span></p>
+                    <p><strong>สถานะการชำระ:</strong> <span id="payment-status"
+                                                            class="text-green-500">ชำระเรียบร้อย</span></p>
                 </div>
+
+                <!-- ปุ่มปิด Modal -->
                 <button onclick="closeOrderDetail()"
-                        class="mt-4 w-full bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-md shadow-md transition-all">
+                        class="mt-6 w-full bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-md shadow-md transition">
                     ปิด
                 </button>
             </div>
         </div>
-    </div>
 
     <!-- Success Modal -->
     <div id="success-modal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -138,24 +142,27 @@
                     let itemsHtml = '';
                     data.order_details.forEach(item => {
                         itemsHtml += `
-                            <div class="flex justify-between">
-                                <span>${item.product_name} x ${item.quantity}</span>
-                                <span>${item.unit_price} ฿</span>
-                            </div>`;
+                    <div class="flex justify-between">
+                        <span>${item.product_name} x ${item.quantity}</span>
+                        <span>${item.unit_price} ฿</span>
+                    </div>`;
                         item.options.forEach(option => {
                             itemsHtml += `<div class="text-sm text-gray-500 ml-4">+ ${option.name} (${option.price} ฿)</div>`;
                         });
                     });
+
                     document.getElementById('order-items').innerHTML = itemsHtml;
                     document.getElementById('total-price').innerText = data.total_price;
                     document.getElementById('payment-status').innerText = data.status;
 
-                    document.getElementById('order-detail').classList.remove('hidden');
+                    // แสดง Modal
+                    document.getElementById('order-detail-modal').classList.remove('hidden');
                 });
         }
 
+        // ปิด Modal
         function closeOrderDetail() {
-            document.getElementById('order-detail').classList.add('hidden');
+            document.getElementById('order-detail-modal').classList.add('hidden');
         }
 
         function completeOrder(orderId) {

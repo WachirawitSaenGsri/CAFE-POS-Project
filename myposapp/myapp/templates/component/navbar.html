@@ -1,12 +1,12 @@
+{#ิnavbar.html#}
 {% load static tailwind_tags %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
     {% tailwind_css %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CAFE POS</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -14,36 +14,35 @@
         }
     </style>
 </head>
+<body class="bg-gray-100">
+
 <!-- Navbar -->
-<div class="bg-white shadow-md p-6">
-    <div class="container mx-auto flex flex-wrap sm:flex-row justify-center items-center gap-4">
+<div class="bg-white shadow-md p-4 sm:p-6">
+    <div class="container mx-auto flex flex-wrap justify-center items-center gap-4">
         <!-- Search Box -->
-        <form action="{% url 'home' %}" method="get"
-              class="w-full sm:w-1/3 flex bg-gray-100 border border-gray-300 rounded-lg shadow p-1 ml-40">
+        <form action="{% url 'home' %}" method="get" class="w-full sm:w-1/2 lg:w-1/3 flex bg-gray-100 border border-gray-300 rounded-lg shadow p-1">
             <input type="hidden" name="category" value="{{ category }}">
             <input type="text" name="q" value="{{ query }}" placeholder="ค้นหา..."
-                   class="w-full border-none outline-none text-gray-600 px-2 text-sm" required>
+                   class="w-full border-none outline-none text-gray-600 px-2 text-sm py-2" required>
             <button type="submit"
-                    class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 text-sm rounded-md">
+                    class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 text-sm rounded-md transition">
                 ค้นหา
             </button>
         </form>
 
-        <!-- Time and Add Menu -->
-        <div class="flex items-center gap-4">
-            <div id="time-display" class="text-gray-600 font-medium"></div>
-            <a href="{% url 'addmenu' %}"
-               class="flex items-center bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 4v16m8-8H4"></path>
-                </svg>
-                จัดการเมนู
-            </a>
-        </div>
+        <!-- Time Display -->
+        <div id="time-display" class="text-gray-600 font-medium hidden lg:block"></div>
+
+        <!-- Add Menu Button -->
+        <a href="{% url 'addmenu' %}"
+           class="flex items-center bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md shadow transition hidden md:block">
+            + จัดการเมนู
+        </a>
     </div>
 </div>
+
 <script>
-        function updateTime() {
+    function updateTime() {
         const now = new Date();
         const dateString = now.toLocaleDateString('th-TH', {
             weekday: 'long',
@@ -61,3 +60,6 @@
     updateTime();
     setInterval(updateTime, 1000);
 </script>
+
+</body>
+</html>

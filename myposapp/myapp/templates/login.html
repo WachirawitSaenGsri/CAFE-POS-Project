@@ -1,4 +1,3 @@
-{#login.html#}
 {% load static tailwind_tags %}
 <!DOCTYPE html>
 <html lang="en">
@@ -7,195 +6,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cafe POS Login</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Kanit', sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        .btn-register {
-            display: inline-block;
-            padding: 6px 20px; /* ปรับขนาด padding ให้เล็กลง */
-            background-color: #d4af37;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 20px; /* ปรับขนาด font ให้เล็กลง */
-            transition: background-color 0.3s;
-            text-align: center;
-            text-decoration: none;
-            width: auto;
-        }
-        .btn-register:hover {
-            background-color: #c9a01b;
-        }
-        .login-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f0f0f0;
-        }
-        .login-form {
-            display: flex;
-            justify-content: space-between;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            width: 80%; /* ปรับความกว้างให้ครอบคลุม 80% ของหน้าจอ */
-            max-width: 1200px;
-            min-height: 70vh;
-        }
-        .login-left {
-            flex: 1;
-            background: url("{% static 'BG_login.png' %}") no-repeat center center;
-            background-size: cover;
-            position: relative;
-        }
-        .login-left::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-        }
-        .login-left .logo {
-            position: absolute;
-            bottom: 50px;
-            left: 50px;
-            color: white;
-            font-size: 36px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        }
-        .login-right {
-            flex: 1.5; /* ปรับขนาดส่วนขวาให้ใหญ่ขึ้น */
-            padding: 40px 60px;
-        }
-        .login-form h2 {
-            font-size: 36px; /* ขนาดตัวอักษรใหญ่ขึ้น */
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #7c6e6e;
-            text-align: center;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #7c6e6e;
-            font-weight: 500;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 12px 20px;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-        .form-group input:focus {
-            border-color: #7c6e6e;
-        }
-        .btn {
-            display: inline-block;
-            width: 100%;
-            padding: 14px 0;
-            background-color: #d4af37;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-        }
-        .btn:hover {
-            background-color: #c9a01b;
-        }
-        .remember-me {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .remember-me input {
-            margin-right: 10px;
-        }
-        .remember-me label {
-            margin: 0;
-            color: #7c6e6e;
-        }
-        .link {
-            text-align: center;
-            margin-top: 10px;
-        }
-        .link a {
-            color: #7c6e6e;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .link a:hover {
-            text-decoration: underline;
-        }
-        .register-link {
-            text-align: right; /* จัดตำแหน่งปุ่มให้อยู่ชิดขวา */
-            margin-top: 20px;
-            margin-right: 10px;
         }
     </style>
 </head>
-<body>
-<div class="login-container">
-    <div class="login-form">
-        <div class="login-left">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="flex bg-white shadow-xl rounded-lg overflow-hidden w-full max-w-5xl min-h-[70vh]">
+        <!-- Left Side (Image) -->
+        <div class="hidden md:block w-1/2 bg-cover bg-center relative" style="background-image: url('{% static 'BG_login.png' %}');">
+            <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            </div>
         </div>
-        <div class="login-right">
-            <h2>Cafe POS</h2>
-            <p class="text-center mb-8">กรุณาป้อนข้อมูลเข้าสู่ระบบของคุณ</p>
-            <form method="post">
+
+        <!-- Right Side (Login Form) -->
+        <div class="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+            <h2 class="text-3xl font-bold text-gray-800 text-center mb-4">Cafe POS</h2>
+            <p class="text-center text-gray-600 mb-6">กรุณาป้อนข้อมูลเข้าสู่ระบบของคุณ</p>
+
+            <form method="post" class="space-y-4">
                 {% csrf_token %}
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" placeholder="Username" required>
+
+                <div>
+                    <label for="username" class="block text-gray-700 font-medium">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Username" required
+                        class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-yellow-500 focus:outline-none">
                 </div>
 
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Password" required>
+                <div>
+                    <label for="password" class="block text-gray-700 font-medium">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Password" required
+                        class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-yellow-500 focus:outline-none">
                 </div>
 
-                <div class="remember-me">
-                    <input type="checkbox" id="remember" name="remember">
-                    <label for="remember">Remember me</label>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="remember" name="remember" class="h-4 w-4 text-yellow-500 border-gray-300 rounded">
+                        <label for="remember" class="ml-2 text-gray-700">Remember me</label>
+                    </div>
+                    <a href="{% url 'password_reset' %}" class="text-yellow-500 hover:underline">ลืมรหัสผ่าน?</a>
                 </div>
 
-                <button type="submit" class="btn">เข้าสู่ระบบ</button>
+                <button type="submit" class="w-full bg-yellow-500 text-white p-3 rounded-lg hover:bg-yellow-600 transition shadow">เข้าสู่ระบบ</button>
             </form>
 
-            <div class="link">
-                <a href="{% url "password_reset" %}">ลืมรหัสผ่าน?</a>
-            </div>
-            <div class="register-link">
-                ยังไม่ได้มีบัญชี?
-                <a href="{% url 'register' %}" class="btn-register">สมัครสมาชิก</a>
+            <div class="mt-4 text-end">
+                <span class="text-gray-700">ยังไม่มีบัญชี?</span>
+                <a href="{% url 'register' %}" class="ml-2 bg-yellow-500 text-white px-4 py-2 rounded-lg shadow hover:bg-yellow-600">สมัครสมาชิก</a>
             </div>
 
             {% if messages %}
-            <ul class="mt-4">
+            <ul class="mt-2 text-start text-red-500">
                 {% for message in messages %}
-                <li class="text-red-500">{{ message }}</li>
+                <li>{{ message }}</li>
                 {% endfor %}
             </ul>
             {% endif %}
         </div>
     </div>
-</div>
 </body>
 </html>

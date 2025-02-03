@@ -58,4 +58,5 @@ urlpatterns = [
     path('employees/delete/<int:employee_id>/', views.delete_employee, name='delete_employee'),
     path('employee_performance/<int:employee_id>/', views.employee_performance, name='employee_performance'),
     path('top_employees/', views.top_employees, name='top_employees'),
+    path('cancel_order/<int:order_id>/', views.cancel_order, name='cancel_order'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -143,3 +143,6 @@ EMAIL_USE_TLS = True  # ถ้าใช้ TLS
 EMAIL_HOST_USER = 'wachirawit.sa.65@ubu.ac.th'  # อีเมลผู้ส่ง
 EMAIL_HOST_PASSWORD = 'lmjg ttaa xcvb kuda'  # รหัสผ่านของอีเมล
 DEFAULT_FROM_EMAIL = 'wachirawit.sa.65@ubu.ac.th'
+
+STRIPE_SECRET_KEY = 'sk_test_51QkIQsKTyjDLYfcr8xHecyo8rUk3vdRcO3hO8jdT8GuMaAHepUeC7YRC0kZ9LR31Bkj6ZgvB3fXCe1gZfb1CVraX00BpCUlNcM'
+STRIPE_PUBLISHABLE_KEY = 'pk_test_51QkIQsKTyjDLYfcrCE7l2JjSCSkhI3xZOY1NpDp1plRrX5Jmo01JwTwRjnBWJGStU3dsjhw4LXzeByfInLzRA5D800KB131a1y'

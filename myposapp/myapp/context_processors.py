@@ -1,9 +1,10 @@
+# myapp/context_processors.py
 def user_store_info(request):
     if request.user.is_authenticated:
         user = request.user
         member_profile = user.member_profile
         store = member_profile.store
-        store_name = store.name
+        store_name = store.name if store else 'No Store'
         return {
             'user_first_name': user.first_name,
             'user_last_name': user.last_name,

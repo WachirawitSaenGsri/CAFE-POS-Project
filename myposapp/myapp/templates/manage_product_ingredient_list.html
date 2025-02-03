@@ -16,58 +16,64 @@
 <body class="bg-gray-100 font-kanit">
 {% include 'component/sidebar.html' %}
 {% include 'component/navbar.html' %}
-    <div class="container mx-auto p-8">
+<div class="container mx-auto px-4 py-6 lg:ml-64">
+    <div class="bg-white rounded-lg shadow-lg p-6">
+
         <!-- Back Button -->
-    <div class="mb-4">
-      <a href="{% url 'manage_ingredients'%}" class="ml-20 bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">
-        ย้อนกลับ
-      </a>
-    </div>
+        <div class="mb-4 flex justify-start">
+            <a href="{% url 'manage_ingredients' %}" class="bg-gray-500 text-white py-2 px-6 rounded-lg hover:bg-gray-600 transition w-full md:w-auto text-center">
+                ย้อนกลับ
+            </a>
+        </div>
+
         <!-- Page Header -->
-        <h1 class="text-3xl font-semibold text-gray-800 mb-6 ml-24">จัดการสูตรของสินค้า</h1>
+        <h1 class="text-2xl md:text-3xl font-semibold text-gray-800 text-center md:text-left">จัดการสูตรของสินค้า</h1>
 
         <!-- Product List Section -->
-        <div class="bg-white p-6 rounded-lg shadow-md ml-24">
-            <h2 class="text-2xl font-medium text-gray-700 mb-4">สินค้าที่มีจำหน่ายในร้านของคุณ</h2>
+        <div class="bg-white p-6 rounded-lg mt-4">
+            <h2 class="text-xl md:text-2xl font-medium text-gray-700 text-center md:text-left mb-4">สินค้าที่มีจำหน่ายในร้านของคุณ</h2>
 
-            <!-- Product Table -->
-            <table class="min-w-full table-auto border-collapse shadow-md">
-                <thead class="bg-gray-200 text-white bg-yellow-500">
-                    <tr>
-                        <th class="px-4 py-2 text-center text-lg">ชื่อสินค้า</th>
-                        <th class="px-4 py-2 text-center text-lg">คำอธิบาย</th>
-                        <th class="px-4 py-2 text-center text-lg">ส่วนประกอบ</th>
-                        <th class="px-4 py-2 text-center text-lg">จัดการสูตร</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in product_with_ingredients %}
-                        <tr class="text-center hover:bg-gray-50 border-b text-lg">
-                            <td class="px-4 py-2 text-center text-gray-800">{{ item.product.product_name }}</td>
-                            <td class="px-4 py-2 text-center text-gray-800">{{ item.product.description }}</td>
-                            <td class="px-4 py-2 text-center text-gray-800">
-                                {% if item.ingredients %}
-                                    <ul>
-                                        {% for ingredient in item.ingredients %}
-                                            <li>{{ ingredient.ingredient.name }} {{ ingredient.quantity }} {{ ingredient.ingredient.unit }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                {% else %}
-                                    <span class="text-gray-500 text-gray-800">ไม่ได้เพิ่มส่วนประกอบ</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-2 text-center">
-                                <a href="{% url 'manage_product_ingredients' item.product.id %}" class="text-blue-500 hover:text-blue-600">จัดการสูตร</a>
-                            </td>
+            <!-- Responsive Table -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full border-collapse shadow-md bg-white rounded-lg">
+                    <thead class="bg-yellow-500 text-white">
+                        <tr class="text-center text-sm md:text-lg">
+                            <th class="px-4 py-3">ชื่อสินค้า</th>
+                            <th class="px-4 py-3">คำอธิบาย</th>
+                            <th class="px-4 py-3">ส่วนประกอบ</th>
+                            <th class="px-4 py-3">จัดการสูตร</th>
                         </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="4" class="px-4 py-2 text-center text-gray-500">ไม่มีสินค้าในร้านค้าของคุณ</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {% for item in product_with_ingredients %}
+                            <tr class="text-center hover:bg-gray-50 border-b text-sm md:text-lg">
+                                <td class="px-4 py-3 text-gray-800">{{ item.product.product_name }}</td>
+                                <td class="px-4 py-3 text-gray-600">{{ item.product.description }}</td>
+                                <td class="px-4 py-3 text-gray-600">
+                                    {% if item.ingredients %}
+                                        <ul class="text-sm md:text-base">
+                                            {% for ingredient in item.ingredients %}
+                                                <li>{{ ingredient.ingredient.name }} {{ ingredient.quantity }} {{ ingredient.ingredient.unit }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <span class="text-gray-600"></span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <a href="{% url 'manage_product_ingredients' item.product.id %}" class="text-blue-500 hover:text-blue-600">จัดการสูตร</a>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4" class="px-4 py-3 text-center text-gray-500">ไม่มีสินค้าในร้านค้าของคุณ</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
+</div>
 </body>
 </html>

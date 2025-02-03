@@ -1,11 +1,11 @@
 # myapp/views.py
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth import login, logout , authenticate
+from django.contrib.auth import login, logout ,authenticate
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
-from django.db.models import Q
+from django.db.models import Q, Case, When
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.core.paginator import Paginator
@@ -15,6 +15,11 @@ from myapp.models import *
 from datetime import datetime, timedelta
 from django.db.models import Sum, Count, Avg, F
 from django.db.models.functions import TruncMonth, TruncYear
+import stripe
+from django.conf import settings
+from django.utils import timezone
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
 def user_login(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -455,9 +460,7 @@ def History_Order(request):
 @login_required
 def update_points_config(request):
     store = request.user.member_profile.store
-    # เช็คว่าผู้ใช้ไม่ใช่ผู้ดูแลระบบ
-    if not request.user.is_superuser:
-        return redirect('home')
+
     points_config, created = PointsConfig.objects.get_or_create(store=store)
 
     if request.method == 'POST':
@@ -817,6 +820,25 @@ def delete_order_detail(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'invalid method'})
+
+@csrf_exempt
+def cancel_order(request, order_id):
+    if request.method == 'POST':
+        try:
+            order = Order.objects.get(id=order_id)
+            order_details = OrderDetail.objects.filter(order=order)
+
+            for detail in order_details:
+                product_ingredients = ProductIngredient.objects.filter(product=detail.product)
+                for product_ingredient in product_ingredients:
+                    product_ingredient.ingredient.stock += product_ingredient.quantity * detail.quantity
+                    product_ingredient.ingredient.save()
+
+            order.delete()
+            return JsonResponse({'status': 'success', 'message': 'Order cancelled and stock returned.'})
+        except Order.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Order not found.'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
 
 @login_required
 def add_product(request):
@@ -1236,18 +1258,42 @@ def employee_performance(request, employee_id):
     }
     return JsonResponse(data)
 
+@login_required
 def top_employees(request):
     store = request.user.member_profile.store
-    employees = Member.objects.filter(store=store).annotate(
-        total_sales=Sum('user__handled_orders__total_price'),
-        total_orders=Count('user__handled_orders')
+    filter_range = request.GET.get('filter', 'today')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    employees = Member.objects.filter(store=store)
+
+    # กรองออเดอร์ของพนักงานในร้านค้า
+    orders = Order.objects.filter(employee__in=employees.values_list('user', flat=True), store=store)
+
+    if filter_range == 'today':
+        orders = orders.filter(created_at__date=timezone.now().date())
+
+    elif filter_range == 'week':
+        start_of_week = timezone.now() - timedelta(days=timezone.now().weekday())
+        orders = orders.filter(created_at__date__gte=start_of_week.date())
+
+    elif filter_range == 'month':
+        orders = orders.filter(created_at__month=timezone.now().month)
+
+    elif filter_range == 'custom' and start_date and end_date:
+        orders = orders.filter(created_at__date__gte=start_date, created_at__date__lte=end_date)
+
+    # คำนวณยอดขายและจำนวนออเดอร์ของแต่ละพนักงาน
+    employees = employees.annotate(
+        total_sales=Sum('user__handled_orders__total_price', filter=Q(user__handled_orders__in=orders), default=0),
+        total_orders=Count('user__handled_orders', filter=Q(user__handled_orders__in=orders), distinct=True)
     ).order_by('-total_sales')[:5]
 
     data = [
         {
             'name': f'{employee.user.first_name} {employee.user.last_name}',
-            'total_sales': employee.total_sales,
-            'total_orders': employee.total_orders
+            'total_sales': employee.total_sales or 0,
+            'total_orders': employee.total_orders or 0
         }
         for employee in employees
     ]

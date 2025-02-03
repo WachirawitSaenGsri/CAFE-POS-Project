@@ -19,18 +19,19 @@
 {% include 'component/sidebar.html' %}
 {% include 'component/navbar.html' %}
 
-  <div class="container mx-auto p-6">
+<div class="container mx-auto py-10 px-6">
+    <div class="bg-white rounded-lg shadow-lg p-6 ml-20">
       <!-- Back Button -->
     <div class="mb-4">
-      <a href="{% url 'manage_product_ingredients_list'%}" class="ml-20 bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">
+      <a href="{% url 'manage_product_ingredients_list'%}" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">
         ย้อนกลับ
       </a>
     </div>
     <!-- Title -->
-    <h1 class="text-3xl font-semibold text-gray-800 mb-4 ml-20">จัดการส่วนผสมสำหรับ <span class="text-blue-500">{{ product.product_name }}</span></h1>
+    <h1 class="text-3xl font-semibold text-gray-800 mb-4">จัดการส่วนผสมสำหรับ <span class="text-yellow-500">{{ product.product_name }}</span></h1>
   
     <!-- Add Product Ingredient Form -->
-    <div class="bg-white p-8 rounded-lg shadow-md mb-6 ml-20">
+    <div class="bg-white p-8 rounded-lg shadow-md mb-6">
       <h2 class="text-2xl font-semibold text-gray-800 mb-6">เพิ่มส่วนผสมใหม่ให้กับโปรดักส์นี้</h2>
       <form method="POST">
         {% csrf_token %}
@@ -58,16 +59,16 @@
         </div>
 
         <!-- Submit Button -->
-        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white py-3 px-8 rounded-lg shadow-md mt-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">เพิ่มวัตถุดิบ</button>
+        <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white py-3 px-8 rounded-lg shadow-md mt-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">เพิ่มวัตถุดิบ</button>
       </form>
     </div>
 
     <!-- Product Ingredients List -->
-    <h2 class="text-2xl font-semibold text-gray-700 mb-4 ml-20">ส่วนผสมโปรดักส์นี้</h2>
-    <div class="overflow-x-auto bg-white shadow-md rounded-lg ml-20">
+    <h2 class="text-2xl font-semibold text-gray-700 mb-4">ส่วนผสมโปรดักส์นี้</h2>
+    <div class="overflow-x-auto bg-white shadow-md rounded-lg">
       <table class="min-w-full table-auto border-collapse">
         <thead>
-          <tr class="bg-blue-600 text-white text-center">
+          <tr class="bg-yellow-500 text-white text-center">
             <th class="px-6 py-4 text-lg">วัตถุดิบ</th>
             <th class="px-6 py-4 text-lg">ปริมาณ</th>
             <th class="px-6 py-4 text-lg">ปุ่ม</th>
@@ -88,6 +89,7 @@
       </table>
     </div>
   </div>
+<div>
 </body>
 </html>
 

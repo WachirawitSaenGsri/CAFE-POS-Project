@@ -60,9 +60,8 @@
                         {% if product.promotion and product.promotion.is_active %}
                             <p class="text-yellow-500 font-semibold">จากราคา <s>{{ product.price|floatformat:2 }}</s> ฿</p>
                             <p class="text-yellow-500 font-semibold">ลดเหลือ {{ product.get_discounted_price|floatformat:2 }} ฿</p>
-                            <p class="text-gray-500 text-sm">{{ product.promotion.name }} : {{ product.promotion.start_date|date:"d M Y" }} - {{ product.promotion.end_date|date:"d M Y" }}</p>
                         {% else %}
-                            <p class="text-yellow-500 font-semibold mt-2">{{ product.price|floatformat:2 }} ฿</p>
+                            <p class="text-yellow-500 font-semibold mt-2 ">{{ product.price|floatformat:2 }} ฿</p>
                         {% endif %}
                         {% if product.is_low_stock %}
                             <p class="text-red-500 text-sm mt-2">จำเป็นต้องเติมสต๊อก!!!</p>
@@ -90,6 +89,7 @@
                 </div>
                 {% endfor %}
             </div>
+{#<div class="flex flex-col bg-white p-6 rounded-lg shadow-lg">#}
 <!-- Cart Information -->
 <div class="bg-white p-6 rounded-lg shadow-lg lg:ml-auto w-full lg:w-[25rem] xl:w-[30rem]">
     <div class="flex justify-between items-center mb-6">

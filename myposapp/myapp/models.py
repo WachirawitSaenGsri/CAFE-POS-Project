@@ -113,22 +113,6 @@ class Order(models.Model):
         self.total_price = sum([item.price for item in self.order_details.all()])
         self.save()
 
-    def update_stock(self):
-        for order_detail in self.order_details.all():
-            product = order_detail.product
-            for product_ingredient in product.productingredient_set.all():
-                ingredient = product_ingredient.ingredient
-                quantity_used = product_ingredient.quantity * order_detail.quantity  # ปริมาณส่วนผสมที่ใช้
-
-                if ingredient.stock >= quantity_used:
-                    ingredient.stock -= quantity_used  # หักสต๊อก
-                    ingredient.save()
-                else:
-                    raise ValueError(f"Not enough stock for {ingredient.name}")
-
-        # หลังจากอัพเดตสต๊อกแล้วให้บันทึกคำสั่งซื้อ
-        self.save()
-
 class OrderDetail(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='order_details')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
