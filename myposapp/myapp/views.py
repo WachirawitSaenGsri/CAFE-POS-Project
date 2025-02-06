@@ -34,7 +34,10 @@ def user_login(request):
             try:
                 member = user.member_profile  # เข้าถึงโปรไฟล์สมาชิกผ่าน 'member_profile'
                 if member.store:
-                    return redirect('home')  # เปลี่ยนเส้นทางไปยังหน้าแรกหากมีร้านค้าอยู่
+                    if member.role == 'owner':
+                        return redirect('home')  # เปลี่ยนเส้นทางไปยังหน้าแรกหากเป็นเจ้าของร้าน
+                    elif member.role == 'employee':
+                        return redirect('home_employee')  # เปลี่ยนเส้นทางไปยังหน้าแรกของพนักงาน
                 else:
                     messages.error(request, 'ผู้ใช้ไม่เชื่อมโยงกับร้านค้าใดๆ')
                     return redirect('login')
@@ -520,7 +523,6 @@ def Member1(request):
 @login_required
 def edit_member(request, member_id):
     customer = get_object_or_404(customerMember, id=member_id)
-
     if request.method == 'POST':
         form = CustomerMemberForm(request.POST, instance=customer)
         if form.is_valid():
@@ -538,6 +540,9 @@ def delete_member(request, member_id):
     customer = get_object_or_404(customerMember, id=member_id)
     customer.delete()
     messages.success(request, 'สมาชิกถูกลบออกจากระบบ!')
+    member = request.user.member_profile
+    if member.role == 'employee':
+        return redirect('member_employee')
     return redirect('member')
 
 @login_required
@@ -982,8 +987,10 @@ def edit_ingredient(request, ingredient_id):
 def delete_ingredient(request, ingredient_id):
     ingredient = get_object_or_404(Ingredient, id=ingredient_id)
     ingredient.delete()
+    member = request.user.member_profile
+    if member.role == 'employee':
+        return redirect('manage_ingredients_employee')
     return redirect('manage_ingredients')
-
 
 @login_required
 def manage_product_ingredients(request, product_id):
@@ -1353,3 +1360,359 @@ def delete_employee(request, employee_id):
     employee.delete()
     messages.success(request, 'ลบพนักงานสำเร็จแล้ว!')
     return redirect('manage_employees')
+
+@login_required
+def home_employee(request):
+    query = request.GET.get('q', '')  # รับค่าคำค้นหา
+    category = request.GET.get('category', 'all')  # รับหมวดหมู่
+    page_number = request.GET.get('page', 1)  # รับหมายเลขหน้า
+    store = request.user.member_profile.store
+    # ดึงหมวดหมู่ทั้งหมดที่มีอยู่ในฐานข้อมูล
+    categories = Category.objects.filter(store=store)  # ดึงหมวดหมู่ทั้งหมดจากฐานข้อมูล
+
+    # ดึงสินค้าทั้งหมด
+    products = Product.objects.filter(store=store)
+
+    # กรองสินค้าตามคำค้นหา (query)
+    if query:
+        products = products.filter(Q(product_name__icontains=query) | Q(description__icontains=query))
+
+    # กรองสินค้าตามหมวดหมู่
+    if category != 'all':
+        products = products.filter(category__name=category)
+
+    # แบ่งสินค้าเป็นหน้าละ 10 รายการ
+    paginator = Paginator(products, 10)
+    page_obj = paginator.get_page(page_number)
+
+    # ดึงคำสั่งซื้อที่ยังไม่สมบูรณ์ล่าสุด
+    order = Order.objects.filter(customer_name=' ').last()
+
+    total_price = 0
+    total_quantity = 0
+    customer_points = 0  # ตัวแปรในการเก็บคะแนนลูกค้า
+
+    if order:
+        total_price = sum(detail.price for detail in order.order_details.all())
+        total_quantity = sum(detail.quantity for detail in order.order_details.all())
+
+        # ดึงคะแนนของลูกค้า
+        if order.customer_phone:
+            try:
+               # ดึงข้อมูลลูกค้าจากเบอร์โทร
+                customer = customerMember.objects.get(phone=order.customer_phone)
+                customer_points = customer.points # ดึงคะแนนลูกค้า
+            except customerMember.DoesNotExist:
+                customer_points = 0  # ถ้าไม่พบข้อมูลลูกค้าให้คะแนนเป็น 0
+
+    # ฟอร์มสำหรับกรอกข้อมูลลูกค้า
+    form = CustomerInfoForm()
+
+    # ส่งข้อมูล options_list ในแต่ละ product ไปยัง template
+    for product in page_obj:
+        # ใช้ .all() เพื่อดึงข้อมูล options ที่เชื่อมโยงกับ product
+        product.options_list = [option.name for option in product.options.all()] if product.options.exists() else []
+        product.discounted_price = product.get_discounted_price()  # คำนวณราคาสินค้าหลังหักส่วนลด
+
+    # ส่งข้อมูลไปยัง template
+    return render(request, 'home_staff.html', {
+        'page_obj': page_obj,
+        'query': query,
+        'category': category,
+        'categories': categories,  # ส่งหมวดหมู่ทั้งหมด
+        'order': order if order else None,  # ส่งคำสั่งซื้อล่าสุดไปยัง template
+        'total_price': total_price,
+        'total_quantity': total_quantity,
+        'customer_points': customer_points,  # ส่งคะแนนลูกค้าไปยัง template
+        'form': form,  # ส่งฟอร์มข้อมูลลูกค้า
+    })
+
+@login_required
+def Order1_staff(request):
+    # รับคำสั่งซื้อทั้งหมดที่มีสถานะการชำระเงินเป็น 'สำเร็จ'
+    store = request.user.member_profile.store
+    orders = Order.objects.filter(
+        payment__payment_status='Success',
+        store=store,
+        status='Pending'
+    )
+
+    # Pagination: กำหนดจำนวนคำสั่งซื้อต่อหน้า
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(orders, 10)  # แสดง 10 คำสั่งซื้อต่อหน้า
+    page_obj = paginator.get_page(page_number)
+
+    # คำนวณปริมาณรวมสำหรับการสั่งซื้อแต่ละครั้ง
+    for order in page_obj:
+        total_quantity = sum(detail.quantity for detail in order.order_details.all())
+        order.total_quantity = total_quantity
+
+    return render(request, 'Order_staff.html', {'page_obj': page_obj})
+
+@login_required
+def History_Order_staff(request):
+    store = request.user.member_profile.store  # รับร้านค้าที่เกี่ยวข้องกับผู้ใช้ที่เข้าสู่ระบบ
+    search_query = request.GET.get('search', '')  # รับคำค้นหา (รหัสคำสั่งซื้อ ชื่อลูกค้า ฯลฯ)
+    date_filter = request.GET.get('date_filter', '')  # รับตัวกรองวันที่ที่เลือก (เช่น 'today', 'this_week')
+
+    ## เริ่มต้นเงื่อนไขตัวกรองสำหรับคำสั่งซื้อที่สำเร็จ
+    orders = Order.objects.filter(store=store, payment__payment_status='Success')  # ค่าเริ่มต้น: คำสั่งซื้อที่สำเร็จทั้งหมด
+
+    # ใช้ตัวกรองวันที่
+    if date_filter == 'today':
+        today = datetime.today().date()
+        orders = orders.filter(created_at__date=today)
+    elif date_filter == 'this_week':
+        today = datetime.today().date()
+        start_of_week = today - timedelta(days=today.weekday())  #เริ่มต้นสัปดาห์
+        end_of_week = start_of_week + timedelta(days=6)  # ท้ายสัปดาห์
+        orders = orders.filter(created_at__date__range=[start_of_week, end_of_week])
+    elif date_filter == 'this_month':
+        today = datetime.today()
+        first_day_of_month = today.replace(day=1)  # รับวันแรกของเดือนปัจจุบัน
+        last_day_of_month = (first_day_of_month.replace(month=first_day_of_month.month + 1) - timedelta(days=1))  #วันสุดท้ายของเดือน
+        orders = orders.filter(created_at__date__range=[first_day_of_month.date(), last_day_of_month.date()])
+    elif date_filter == 'custom':
+        start_date = request.GET.get('start_date', '')
+        end_date = request.GET.get('end_date', '')
+        if start_date and end_date:
+            try:
+                start_date = datetime.strptime(start_date, '%Y-%m-%d')
+                end_date = datetime.strptime(end_date, '%Y-%m-%d')
+                orders = orders.filter(created_at__date__range=[start_date.date(), end_date.date()])
+            except ValueError:
+                pass  # ไม่ต้องทำอะไรถ้าเกิดข้อผิดพลาด
+
+    # ใช้คำค้นหา
+    if search_query:
+        orders = orders.filter(
+            Q(id__icontains=search_query) |
+            Q(customer_name__icontains=search_query) |
+            Q(order_details__product__product_name__icontains=search_query) |
+            Q(status__icontains=search_query)
+        ).distinct()
+
+    # การแบ่งหน้า
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(orders, 10)  # แบ่งคำสั่งซื้อเป็นหน้าละ 10 รายการ
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'History_Order_staff.html', {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'date_filter': date_filter,
+
+    })
+
+@login_required
+def Member1_staff(request):
+    # ดึงข้อมูลการตั้งค่าแต้ม
+    points_config = PointsConfig.objects.first()  # รับการตั้งค่าแต้มแรกที่พบ
+    form = PointsConfigForm(instance=points_config)
+    store = request.user.member_profile.store
+
+    #จัดการการค้นหาลูกค้า
+    search_query = request.GET.get('search', '')
+    if search_query:
+        customers = customerMember.objects.filter(
+            Q(name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(phone__icontains=search_query),
+            store=store
+        )
+    else:
+        customers = customerMember.objects.filter(store=store)
+    paginator = Paginator(customers, 10)  # Show 10 employees per page
+    page_number = request.GET.get('page')  # Get the current page number
+    page_obj = paginator.get_page(page_number)
+    evaluation_data = []
+    if request.method == "POST":
+        form = CustomerMemberForm(request.POST)
+        if form.is_valid():
+            member = form.save(commit=False)
+            member.store = store
+            member.save()
+            messages.success(request, "สมาชิกใหม่ถูกเพิ่มแล้ว!")
+            return redirect("member_employee")
+        else:
+            messages.error(request, "กรุณากรอกข้อมูลให้ครบถ้วน")
+
+    return render(request, 'Member1_staff.html', {
+        'customers': page_obj.object_list,
+        'form': form,
+        'search_query': search_query,
+        'page_obj': page_obj,
+    })
+
+@login_required
+def edit_member_staff(request, member_id):
+    customer = get_object_or_404(customerMember, id=member_id)
+    if request.method == 'POST':
+        form = CustomerMemberForm(request.POST, instance=customer)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'ข้อมูลสมาชิกถูกอัพเดตแล้ว!')
+            return redirect('member_employee')
+    else:
+        form = CustomerMemberForm(instance=customer)
+
+    return render(request, 'edit_member_staff.html', {'form': form, 'customer': customer})
+
+@login_required
+def manage_ingredients_staff(request):
+    store = request.user.member_profile.store
+    ingredients = Ingredient.objects.filter(store=store)  # ดึงข้อมูลวัตถุดิบทั้งหมดจากฐานข้อมูล
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(ingredients, 10)  # Show 10 ingredients per page
+    page_obj = paginator.get_page(page_number)
+
+    if request.method == 'POST':
+        ingredient_id = request.POST.get('ingredient_id')  # รับ ingredient_id ที่ส่งมาจากฟอร์ม
+        ingredient = Ingredient.objects.get(id=ingredient_id)
+        ingredient.check_reorder()  # เช็คว่าเป็นวัตถุดิบที่ต้องเติมหรือไม่
+        return redirect('manage_ingredients_employee')  # รีเฟรชหน้าเมื่อทำการอัปเดต
+    return render(request, 'manage_ingredients_staff.html', {'ingredients': ingredients,'page_obj': page_obj})
+
+def edit_ingredient_staff(request, ingredient_id):
+    ingredient = get_object_or_404(Ingredient, id=ingredient_id)
+    if request.method == 'POST':
+        form = IngredientOrderForm(request.POST, instance=ingredient)
+        if form.is_valid():
+            form.save()
+            return redirect('manage_ingredients_employee')
+    else:
+        form = IngredientOrderForm(instance=ingredient)
+    return render(request, 'manage_ingredient_edit_staff.html', {'form': form, 'ingredient': ingredient})
+
+@login_required
+def add_ingredient_staff(request):
+    store = request.user.member_profile.store
+    if request.method == 'POST':
+        form = IngredientOrderForm(request.POST)
+        if form.is_valid():
+            ingredient = form.save(commit=False)
+            ingredient.store = store
+            ingredient.save()
+            return redirect('manage_ingredients_employee')
+        else:
+            messages.error(request, 'กรุณากรอกข้อมูลให้ครบถ้วน')
+    return redirect('manage_ingredients_employee')
+
+@login_required
+@csrf_exempt
+def PayNow_staff(request, order_id):
+    try:
+        order = get_object_or_404(Order, id=order_id)
+        store = request.user.member_profile.store
+
+        if request.method == 'POST':
+            form = CustomerInfoForm(request.POST)
+
+            if form.is_valid():
+                # รับข้อมูลลูกค้าจากแบบฟอร์ม
+                customer_name = form.cleaned_data['customer_name']
+                customer_phone = form.cleaned_data['customer_phone']
+
+                #อัพเดทออเดอร์พร้อมข้อมูลลูกค้า
+                order.customer_name = customer_name
+                order.customer_phone = customer_phone
+                order.employee = request.user
+                order.store = store
+                order.save()
+                # เปลี่ยนเส้นทางไปยังหน้าการชำระเงิน
+                return redirect('payment_employee', order_id=order.id)
+
+            else:
+                messages.error(request, 'กรุณากรอกข้อมูลให้ครบถ้วน')
+
+        else:
+            # หากไม่ใช่คำขอ POST ให้แสดงแบบฟอร์มด้วยข้อมูลลูกค้าที่มีอยู่ (ถ้ามี)
+            form = CustomerInfoForm(initial={
+                'customer_name': order.customer_name,
+                'customer_phone': order.customer_phone,
+            })
+
+    except Exception as e:
+        print(f"Error occurred while processing the payment: {e}")
+        messages.error(request, 'เกิดข้อผิดพลาดในการชำระเงิน กรุณาลองใหม่อีกครั้ง')
+        return redirect('home_employee')
+
+    return render(request, 'Payment_staff.html', {
+        'form': form,
+        'order': order,
+    })
+
+@transaction.atomic
+@login_required
+def PayMent_staff(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    store = request.user.member_profile.store
+    # เริ่มต้นราคาสั่งซื้อทั้งหมด
+    total_order_price = Decimal(0)
+
+    # รายการเก็บรายละเอียดคำสั่งซื้อพร้อมการคำนวณราคาที่อัปเดต
+    order_details = []
+
+    for detail in order.order_details.all():
+        selected_options = detail.options.all()
+        total_option_price = sum(option.price for option in selected_options)
+        unit_price = detail.product.get_discounted_price() + total_option_price
+        total_item_price = unit_price * detail.quantity
+        order_details.append({
+            'product_name': detail.product.product_name,
+            'quantity': detail.quantity,
+            'unit_price': unit_price,
+            'total_item_price': total_item_price,
+            'options': selected_options,
+        })
+        total_order_price += total_item_price
+
+    # ดึงการกำหนดค่าคะแนน (บาทละกี่คะแนน)
+    points_config = PointsConfig.objects.first()
+
+    points_earned = 0
+    if points_config:
+        points_earned = int(total_order_price * points_config.points_per_baht)  # คำนวณคะแนนที่ได้รับ
+
+    # หากส่งแบบฟอร์มแล้วให้ดำเนินการชำระเงิน
+    if request.method == 'POST':
+        payment_method = request.POST.get('payment_method', None)
+        amount_paid = Decimal(request.POST.get('amount_paid', 0))  # แปลง amount_paid เป็นทศนิยม
+
+        if not payment_method or not amount_paid:
+            messages.error(request, 'กรุณากรอกข้อมูลการชำระเงินให้ครบถ้วน')
+            return render(request, 'Payment_staff.html', {
+                'order': order,
+                'order_details': order_details,
+                'total_order_price': total_order_price,
+                'points_earned': points_earned,
+            })
+
+        # คำนวณตังค์ทอน
+        change = amount_paid - total_order_price
+
+        # บันทึกรายละเอียดการชำระเงิน
+        Payment.objects.create(
+            order=order,
+            amount=total_order_price,
+            payment_method=payment_method,
+            payment_status='Success' if change >= 0 else 'Failed',
+            store=store,
+        )
+
+        # อัปเดตคะแนนลูกค้าหากพบลูกค้าจากเบอร์โทร
+        if order.customer_phone:
+            try:
+                customer = customerMember.objects.get(phone=order.customer_phone)
+                customer.points += points_earned
+                customer.save()
+            except customerMember.DoesNotExist:
+                messages.warning(request, 'ไม่พบข้อมูลลูกค้า')
+        return redirect('order_employee')
+
+    return render(request, 'Payment_staff.html', {
+        'order': order,
+        'order_details': order_details,
+        'total_order_price': total_order_price,
+        'points_earned': points_earned,
+    })

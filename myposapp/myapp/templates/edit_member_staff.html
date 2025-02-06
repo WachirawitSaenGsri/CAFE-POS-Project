@@ -1,0 +1,60 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% tailwind_css %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แก้ไขข้อมูลสมาชิก</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-kanit">
+{% include 'component/sidebar_staff.html' %}
+{% include 'component/navbar_staff.html' %}
+
+<div class="container mx-auto p-6">
+    <div class="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-md">
+        <h2 class="text-2xl font-semibold text-gray-700 mb-6">แก้ไขข้อมูลสมาชิก</h2>
+
+        <h3 class="text-xl font-semibold text-gray-800 mb-6">ข้อมูลสมาชิก: {{ customer.name }}</h3>
+
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            {{ form.as_p }}  <!-- ฟอร์มจะถูกแสดงที่นี่ -->
+
+            <!-- ปุ่มยกเลิกและบันทึก -->
+            <div class="flex justify-between gap-6 mt-20">
+                <button type="button" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-400 transition duration-300" id="cancelEdit">
+                    ยกเลิก
+                </button>
+                <button type="submit" class="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600 transition duration-300">
+                    บันทึกการเปลี่ยนแปลง
+                </button>
+            </div>
+        </form>
+
+        <!-- ปุ่มกลับไปที่ข้อมูลสมาชิก -->
+        <div class="flex justify-center mt-6">
+            <a href="{% url 'member_employee' %}" class="bg-blue-500 text-white py-2 px-6 rounded-md hover:bg-blue-600 transition duration-300">
+                กลับไปที่ข้อมูลสมาชิก
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // การยกเลิกการแก้ไข
+    const cancelEdit = document.getElementById('cancelEdit');
+    cancelEdit.addEventListener('click', () => {
+        window.location.href = "{% url 'member_employee' %}";  // กลับไปที่หน้าข้อมูลสมาชิก
+    });
+</script>
+
+</body>
+</html>

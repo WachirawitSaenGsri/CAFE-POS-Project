@@ -57,8 +57,8 @@
     </style>
 </head>
 <body class="bg-gray-100">
-    {% include 'component/sidebar.html' %}
-    {% include 'component/navbar.html' %}
+    {% include 'component/sidebar_staff.html' %}
+    {% include 'component/navbar_staff.html' %}
 
 <div class="container mx-auto p-6">
 <div class="bg-white rounded-lg shadow-lg p-6  ml-20">
@@ -293,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('closeSuccessModalButton').addEventListener('click', function () {
         closeModal(successAlertModal);
         setTimeout(() => {
-            window.location.href = '/home/';
+            window.location.href = '/home-employee/';
         }, 500);
     });
 

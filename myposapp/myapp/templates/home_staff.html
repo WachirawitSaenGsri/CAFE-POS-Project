@@ -1,4 +1,4 @@
-{#home.html#}
+{#home_staff.html#}
 {% load static tailwind_tags %}
 <!DOCTYPE html>
 <html lang="en">
@@ -16,8 +16,8 @@
     </style>
 </head>
 <body class="bg-gray-100 font-kanit">
-{% include 'component/sidebar.html' %}
-{% include 'component/navbar.html' %}
+{% include 'component/sidebar_staff.html' %}
+{% include 'component/navbar_staff.html' %}
 <!-- Categories Section -->
     <div class="container mx-auto my-6 px-4">
         <div class="bg-white shadow-md rounded-lg p-6 md:w-3/4 lg:w-2/3 mx-auto">
@@ -25,13 +25,13 @@
 
             <!-- Category Buttons Container -->
             <div class="flex flex-nowrap overflow-x-auto space-x-4 md:justify-center md:flex-wrap">
-                <a href="{% url 'home' %}?category=all"
+                <a href="{% url 'home_employee' %}?category=all"
                    class="flex-shrink-0 px-6 py-3 rounded-full text-sm font-medium transition duration-300 ease-in-out whitespace-nowrap
                           {% if category == 'all' %} bg-yellow-500 text-white shadow-md {% else %} bg-gray-100 text-gray-700 hover:bg-yellow-500 hover:text-white hover:shadow-md {% endif %}">
                    All Menu
                 </a>
                 {% for category_item in categories %}
-                <a href="{% url 'home' %}?category={{ category_item.name }}"
+                <a href="{% url 'home_employee' %}?category={{ category_item.name }}"
                    class="flex-shrink-0 px-6 py-3 rounded-full text-sm font-medium transition duration-300 ease-in-out whitespace-nowrap
                           {% if category == category_item.name %} bg-yellow-500 text-white shadow-md {% else %} bg-gray-100 text-gray-700 hover:bg-yellow-500 hover:text-white hover:shadow-md {% endif %}">
                    {{ category_item.name|title }}
@@ -46,7 +46,7 @@
             <!-- Product List -->
             <div class="lg:col-span-2 space-y-6">
                 {% for product in page_obj %}
-                <div class="bg-white rounded-lg shadow-lg p-6 flex flex-col sm:flex-row items-center gap-6 md:w-[40rem] lg:w-[45rem] xl:w-[52rem]">
+                <div class="bg-white rounded-lg shadow-lg p-4 flex flex-col sm:flex-row items-center gap-5 md:w-[40rem] lg:w-[45rem] xl:w-[52rem]">
                     <div class="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                         {% if product.img_product %}
                             <img src="{{ product.img_product.url }}" alt="{{ product.product_name }}" class="object-cover">
@@ -60,8 +60,9 @@
                         {% if product.promotion and product.promotion.is_active %}
                             <p class="text-yellow-500 font-semibold">จากราคา <s>{{ product.price|floatformat:2 }}</s> ฿</p>
                             <p class="text-yellow-500 font-semibold">ลดเหลือ {{ product.get_discounted_price|floatformat:2 }} ฿</p>
+                            <p class="text-gray-500 text-sm">{{ product.promotion.name }} : {{ product.promotion.start_date|date:"d M Y" }} - {{ product.promotion.end_date|date:"d M Y" }}</p>
                         {% else %}
-                            <p class="text-yellow-500 font-semibold mt-2 ">{{ product.price|floatformat:2 }} ฿</p>
+                            <p class="text-yellow-500 font-semibold mt-2">{{ product.price|floatformat:2 }} ฿</p>
                         {% endif %}
                         {% if product.is_low_stock %}
                             <p class="text-red-500 text-sm mt-2">จำเป็นต้องเติมสต๊อก!!!</p>
@@ -71,7 +72,7 @@
                             <div class="flex flex-wrap gap-4 mt-2 w-full" id="options-{{ product.id }}">
                                 {% for option in product.options.all %}
                                     <button type="button"
-                                            class="option-btn px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-yellow-500 hover:text-white"
+                                            class="option-btn px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-yellow-500 hover:text-white"
                                             data-option="{{ option.name }}"
                                             data-price="{{ option.price|floatformat:2 }}">
                                         {{ option.name }} (+{{ option.price|floatformat:2 }} ฿)
@@ -89,7 +90,6 @@
                 </div>
                 {% endfor %}
             </div>
-{#<div class="flex flex-col bg-white p-6 rounded-lg shadow-lg">#}
 <!-- Cart Information -->
 <div class="bg-white p-6 rounded-lg shadow-lg lg:ml-auto w-full lg:w-[25rem] xl:w-[30rem]">
     <div class="flex justify-between items-center mb-6">
@@ -107,12 +107,12 @@
     <input type="text" id="customer-search" placeholder="ค้นหาสมาชิกจาก ชื่อ เบอร์โทร..." class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" />
 </div>
 
-<ul id="customer-list" class="hidden bg-white border border-gray-300 rounded-lg shadow-lg absolute z-10 w-1/4 max-h-60 overflow-auto">
+<ul id="customer-list" class="hidden bg-white border border-gray-300 rounded-lg shadow-lg absolute z-10 w-1/4 max-h-60 overflow-auto -mt-4">
     <!-- Results will be populated here -->
 </ul>
 <!-- Customer Information Form -->
 <div class="mb-6">
-    <form method="POST" action="{% if order %}{% url 'paynow' order.id %}{% else %}#{% endif %}">
+    <form method="POST" action="{% if order %}{% url 'paynow_employee' order.id %}{% else %}#{% endif %}">
         {% csrf_token %}
         <div class="flex gap-4 mb-4">
             <div class="w-full">

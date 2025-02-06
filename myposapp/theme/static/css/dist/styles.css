@@ -991,6 +991,10 @@ select {
   margin-bottom: 1.5rem;
 }
 
+.-mt-4 {
+  margin-top: -1rem;
+}
+
 .mb-2 {
   margin-bottom: 0.5rem;
 }
@@ -1017,10 +1021,6 @@ select {
 
 .ml-20 {
   margin-left: 5rem;
-}
-
-.ml-24 {
-  margin-left: 6rem;
 }
 
 .ml-3 {
@@ -1326,6 +1326,10 @@ select {
 
 .gap-4 {
   gap: 1rem;
+}
+
+.gap-5 {
+  gap: 1.25rem;
 }
 
 .gap-6 {
@@ -2296,10 +2300,6 @@ select {
 
   .lg\:ml-10 {
     margin-left: 2.5rem;
-  }
-
-  .lg\:ml-24 {
-    margin-left: 6rem;
   }
 
   .lg\:ml-64 {

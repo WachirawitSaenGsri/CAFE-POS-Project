@@ -46,7 +46,7 @@
             <!-- Product List -->
             <div class="lg:col-span-2 space-y-6">
                 {% for product in page_obj %}
-                <div class="bg-white rounded-lg shadow-lg p-6 flex flex-col sm:flex-row items-center gap-6 md:w-[40rem] lg:w-[45rem] xl:w-[52rem]">
+                <div class="bg-white rounded-lg shadow-lg p-4 flex flex-col sm:flex-row items-center gap-5 md:w-[40rem] lg:w-[45rem] xl:w-[52rem]">
                     <div class="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                         {% if product.img_product %}
                             <img src="{{ product.img_product.url }}" alt="{{ product.product_name }}" class="object-cover">
@@ -72,7 +72,7 @@
                             <div class="flex flex-wrap gap-4 mt-2 w-full" id="options-{{ product.id }}">
                                 {% for option in product.options.all %}
                                     <button type="button"
-                                            class="option-btn px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-yellow-500 hover:text-white"
+                                            class="option-btn px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-yellow-500 hover:text-white"
                                             data-option="{{ option.name }}"
                                             data-price="{{ option.price|floatformat:2 }}">
                                         {{ option.name }} (+{{ option.price|floatformat:2 }} ฿)
@@ -107,7 +107,7 @@
     <input type="text" id="customer-search" placeholder="ค้นหาสมาชิกจาก ชื่อ เบอร์โทร..." class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" />
 </div>
 
-<ul id="customer-list" class="hidden bg-white border border-gray-300 rounded-lg shadow-lg absolute z-10 w-1/4 max-h-60 overflow-auto">
+<ul id="customer-list" class="hidden bg-white border border-gray-300 rounded-lg shadow-lg absolute z-10 w-1/4 max-h-60 overflow-auto -mt-4">
     <!-- Results will be populated here -->
 </ul>
 <!-- Customer Information Form -->
