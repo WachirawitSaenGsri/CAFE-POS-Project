@@ -1,3 +1,4 @@
+{#Member1.html#}
 {% load static tailwind_tags %}
 <!DOCTYPE html>
 <html lang="en">
@@ -134,15 +135,16 @@
             </div>
         </div>
     </div>
-<!-- Modal for points configuration -->
+<!-- Modal สำหรับตั้งค่าแต้มสะสม -->
 <div id="pointsConfigModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 hidden">
     <div class="flex justify-center items-center min-h-screen">
         <div class="bg-white p-6 rounded-lg shadow-lg w-96">
             <h3 class="text-2xl font-semibold mb-4 text-center">ตั้งค่าแต้มสะสม</h3>
 
-            <!-- Display current points per baht -->
+            <!-- แสดงค่าปัจจุบัน -->
             <div class="mb-4">
                 <p class="text-gray-700">ปัจจุบันแต้มสะสมต่อ 1 บาท: <span class="font-bold">{{ form.points_per_baht.value }} แต้ม</span></p>
+                <p class="text-gray-700">ปัจจุบันแต้มที่ใช้ลดราคา 1 บาท: <span class="font-bold">{{ form.points_to_baht.value }} แต้ม</span></p>
             </div>
 
             <form method="POST" action="{% url 'update_points_config' %}">
@@ -151,6 +153,11 @@
                     <div>
                         <label for="points_per_baht" class="block text-sm font-medium text-gray-700">แต้มสะสมต่อ 1 บาท</label>
                         <input type="number" name="points_per_baht" id="points_per_baht" value="{{ form.points_per_baht.value }}"
+                               class="mt-1 p-2 w-full border border-gray-300 rounded-md" step="0.01" required>
+                    </div>
+                    <div>
+                        <label for="points_to_baht" class="block text-sm font-medium text-gray-700">แต้มที่ใช้ลดราคา 1 บาท</label>
+                        <input type="number" name="points_to_baht" id="points_to_baht" value="{{ form.points_to_baht.value }}"
                                class="mt-1 p-2 w-full border border-gray-300 rounded-md" step="0.01" required>
                     </div>
                 </div>

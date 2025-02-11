@@ -1,4 +1,4 @@
-{#Payment.html#}
+{#Payment_staff.html#}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,7 +17,7 @@
         }
         .numpad button {
             padding: 20px;
-            font-size: 20px;
+            font-size: 19px;
             background-color: #f3f4f6;
             border: 1px solid #ddd;
             border-radius: 8px;
@@ -129,10 +129,15 @@
                             <input type="radio" name="payment_method" value="cash" class="form-radio" checked> Cash
                         </label>
                         <label class="inline-flex items-center ml-4">
-                            <input type="radio" name="payment_method" value="Promptpay" class="form-radio"> Promptpay
+                            <input type="radio" name="payment_method" value="ชำระเงินหลายช่องทาง" class="form-radio"> ชำระเงินหลายช่องทาง
                         </label>
                     </div>
-
+                    <button type="button" id="stripe_button"
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-md mt-4 payment-button mb-4"
+                            style="display: none;">
+                        <img src="{% static 'creditcard.png' %}" alt="ชำระเงินหลายช่องทาง" class="h-8 inline">
+                        <p>ชำระเงินหลายช่องทาง</p>
+                    </button>
                     <div class="mb-4">
                         <label for="amount_paid" class="block text-sm font-sm text-gray-700">จำนวนเงินที่ชำระ</label>
                         <input type="text" id="amount_paid" name="amount_paid" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500" readonly>
@@ -149,6 +154,7 @@
                         <button type="button" onclick="addNumber(8)">8</button>
                         <button type="button" onclick="addNumber(9)">9</button>
                         <button type="button" onclick="addNumber(0)">0</button>
+                        <button type="button" class="bg-blue-500 text-black p-4 rounded-md" onclick="addTotalAmount()">ชำระพอดี</button>
                         <button type="button" class="clear" onclick="clearAmount()">Clear</button>
                     </div>
                     <div id="change_message" class="mt-4 font-semibold text-lg text-green-600"></div>
@@ -198,6 +204,7 @@
         </div>
     </div>
 </div>
+<script src="https://js.stripe.com/v3/"></script>
     <script>
         document.getElementById('amount_paid').addEventListener('input', function() {
             var totalAmount = {{ total_order_price }};
@@ -293,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('closeSuccessModalButton').addEventListener('click', function () {
         closeModal(successAlertModal);
         setTimeout(() => {
-            window.location.href = '/home-employee/';
+            window.location.href = '/home/';
         }, 500);
     });
 
@@ -302,6 +309,66 @@ document.addEventListener('DOMContentLoaded', function () {
         closeModal(errorAlertModal);
     });
 });
+        
+document.addEventListener('DOMContentLoaded', function () {
+    const stripe = Stripe('pk_test_51QkIQsKTyjDLYfcrCE7l2JjSCSkhI3xZOY1NpDp1plRrX5Jmo01JwTwRjnBWJGStU3dsjhw4LXzeByfInLzRA5D800KB131a1y');
+    const stripeButton = document.getElementById('stripe_button');
+
+    stripeButton.addEventListener('click', async function () {
+        try {
+            const response = await fetch('/create-checkout-session/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    order_id: '{{ order.id }}',
+                    amount: {{ total_order_price }},
+                    currency: 'thb'
+                })
+            });
+
+            const session = await response.json();
+
+            if (session.url) {
+                window.open(session.url, '_blank'); 
+            } else {
+                document.getElementById('errorMessage').innerText = 'เกิดข้อผิดพลาดในการสร้างเซสชันการชำระเงิน';
+                openModal(document.getElementById('errorAlertModal'));
+            }
+        } catch (error) {
+            document.getElementById('errorMessage').innerText = 'เกิดข้อผิดพลาด: ' + error;
+            openModal(document.getElementById('errorAlertModal'));
+        }
+    });
+});
+        document.addEventListener('DOMContentLoaded', function () {
+        const stripeButton = document.getElementById('stripe_button');
+        const paymentMethods = document.getElementsByName('payment_method');
+
+        function toggleStripeButton() {
+            const selectedMethod = Array.from(paymentMethods).find(method => method.checked).value;
+            if (selectedMethod === 'ชำระเงินหลายช่องทาง') {
+                stripeButton.style.display = 'block';
+            } else {
+                stripeButton.style.display = 'none';
+            }
+        }
+
+        paymentMethods.forEach(method => {
+            method.addEventListener('change', toggleStripeButton);
+        });
+
+        // Initial check
+        toggleStripeButton();
+    });
+        function addTotalAmount() {
+    var amountPaid = document.getElementById('amount_paid');
+    var totalAmount = {{ total_order_price }};  // ดึงค่าราคารวมจาก template
+    amountPaid.value = totalAmount.toFixed(2);  // ใส่ค่าลงในช่องป้อนข้อมูล
+    amountPaid.dispatchEvent(new Event('input'));  // เรียก event input เพื่ออัปเดตค่า
+}
     </script>
 </body>
 </html>

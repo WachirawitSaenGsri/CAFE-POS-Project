@@ -1,7 +1,9 @@
 # models.py
+from decimal import Decimal
 from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
+from django.db import transaction
 class Store(models.Model):
     name = models.CharField(max_length=100, unique=True)
     owner = models.OneToOneField(User, on_delete=models.CASCADE, related_name="store")  # เจ้าของร้าน
@@ -145,9 +147,11 @@ class customerMember(models.Model):
     def __str__(self):
         # แสดงชื่อและเบอร์โทรของลูกค้าในรูปแบบข้อความ
         return f"{self.name} ({self.phone})"
+
 class PointsConfig(models.Model):
-    points_per_baht = models.DecimalField(max_digits=5, decimal_places=2, default=1.00)
+    points_per_baht = models.DecimalField(max_digits=5, decimal_places=2, default=1.00) # กำหนดแต้มที่ได้รับต่อ 1 บาท
+    points_to_baht = models.DecimalField(max_digits=5, decimal_places=2,default=10.00)  # กำหนดแต้มที่สามารถแลกเป็นกี่บาท บาท
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="pointsconfigs", null=True, blank=True)
 
     def __str__(self):
-        return f"Points per Baht: {self.points_per_baht}"
+        return f"Points per Baht: {self.points_per_baht}, Points to Baht: {self.points_to_baht}"

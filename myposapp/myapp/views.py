@@ -18,6 +18,8 @@ from django.db.models.functions import TruncMonth, TruncYear
 import stripe
 from django.conf import settings
 from django.utils import timezone
+from decimal import Decimal
+
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 def user_login(request):
@@ -174,6 +176,7 @@ def PayNow(request, order_id):
     try:
         order = get_object_or_404(Order, id=order_id)
         store = request.user.member_profile.store
+        points_to_use = int(request.POST.get('points', 0))
 
         if request.method == 'POST':
             form = CustomerInfoForm(request.POST)
@@ -211,9 +214,73 @@ def PayNow(request, order_id):
         'form': form,
         'order': order,
     })
+@csrf_exempt
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META['HTTP_STRIPE_SIGNATURE']
+    endpoint_secret = 'whsec_6d275f1c0081983e0a2c87cae902d640fde9f94cbdeb18f89742a6e766cdc854'
 
-from decimal import Decimal
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+    except ValueError as e:
+        return JsonResponse({'error': 'Invalid payload'}, status=400)
+    except stripe.error.SignatureVerificationError as e:
+        return JsonResponse({'error': 'Invalid signature'}, status=400)
 
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        handle_checkout_session(session)
+
+    return JsonResponse({'status': 'success'})
+
+def handle_checkout_session(session):
+    pass
+# views.py
+@csrf_exempt
+def create_checkout_session(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            order_id = data['order_id']
+            amount = data['amount']
+            currency = data['currency']
+
+            order = Order.objects.get(id=order_id)
+
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card', 'promptpay'],
+                line_items=[{
+                    'price_data': {
+                        'currency': currency,
+                        'product_data': {
+                            'name': f'Order #{order_id}',
+                        },
+                        'unit_amount': int(amount * 100),  # Convert to cents
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=request.build_absolute_uri('/success/'),
+                cancel_url=request.build_absolute_uri('/cancel/'),
+            )
+
+            return JsonResponse({'url': session.url})
+
+        except Order.DoesNotExist:
+            return JsonResponse({'error': 'Order not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+def payment_success(request):
+    return render(request, 'component/payment_success.html')
+
+def payment_cancel(request):
+    return render(request, 'component/payment_cancel.html')
 @transaction.atomic
 @login_required
 def PayMent(request, order_id):
@@ -462,19 +529,18 @@ def History_Order(request):
 
 @login_required
 def update_points_config(request):
-    store = request.user.member_profile.store
-
+    store = request.user.member_profile.store  # รับร้านค้าที่เกี่ยวข้องกับผู้ใช้
     points_config, created = PointsConfig.objects.get_or_create(store=store)
 
     if request.method == 'POST':
         form = PointsConfigForm(request.POST, instance=points_config)
         if form.is_valid():
             form.save()
-            messages.success(request, "บันทึกการตั้งค่าแต้มแล้ว!")
-            return redirect("member")
+            messages.success(request, "บันทึกการตั้งค่าแต้มสำเร็จ!")
+            return redirect("member")  # รีเฟรชหน้า Member1 หลังจากบันทึก
         else:
-            messages.success(request, "ตั้งค่าไม่สำเร็จ!")
-            return redirect("member")
+            messages.error(request, "เกิดข้อผิดพลาด! กรุณาลองใหม่")
+
     else:
         form = PointsConfigForm(instance=points_config)
 

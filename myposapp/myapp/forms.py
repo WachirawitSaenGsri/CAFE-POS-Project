@@ -36,7 +36,7 @@ class CustomerMemberForm(forms.ModelForm):
 class PointsConfigForm(forms.ModelForm):
     class Meta:
         model = PointsConfig
-        fields = ['points_per_baht']
+        fields = ['points_per_baht', 'points_to_baht']  # เพิ่มฟิลด์ใหม่
 class CustomerInfoForm(forms.Form):
     customer_name = forms.CharField(max_length=100, label='Customer Name', required=False)
     customer_phone = forms.CharField(max_length=15, label='Customer Phone', required=False)
@@ -71,7 +71,7 @@ class ProductForm(forms.ModelForm):
 
 class PaymentForm(forms.Form):
     payment_method = forms.ChoiceField(
-        choices=[('cash', 'Cash'), ('Promptpay', 'Promptpay')],
+        choices=[('cash', 'Cash'),('ชำระเงินหลายช่องทาง', 'ชำระเงินหลายช่องทาง')],
         label="Payment Method",
         widget=forms.RadioSelect
     )

@@ -46,7 +46,7 @@
             <!-- Product List -->
             <div class="lg:col-span-2 space-y-6">
                 {% for product in page_obj %}
-                <div class="bg-white rounded-lg shadow-lg p-4 flex flex-col sm:flex-row items-center gap-5 md:w-[40rem] lg:w-[45rem] xl:w-[52rem]">
+                <div class="bg-white rounded-lg shadow-lg p-4 flex flex-col sm:flex-row items-center gap-5 md:w-[40rem] lg:w-[45rem] xl:w-[60rem]">
                     <div class="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                         {% if product.img_product %}
                             <img src="{{ product.img_product.url }}" alt="{{ product.product_name }}" class="object-cover">
@@ -91,7 +91,7 @@
                 {% endfor %}
             </div>
 <!-- Cart Information -->
-<div class="bg-white p-6 rounded-lg shadow-lg lg:ml-auto w-full lg:w-[25rem] xl:w-[30rem]">
+<div class="bg-white p-6 rounded-lg shadow-lg w-full lg:w-[20rem] xl:w-[30rem] xl:ml-32">
     <div class="flex justify-between items-center mb-6">
         {% if order %}
             <div>
