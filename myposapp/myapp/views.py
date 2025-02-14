@@ -126,7 +126,7 @@ def Order1(request):
 
 @login_required
 def get_order_details(request, order_id):
-    #ดึงข้อมูลคำสั่งซื้อจากฐานข้อมูล
+    # ดึงข้อมูลคำสั่งซื้อจากฐานข้อมูล
     order = get_object_or_404(Order, id=order_id)
 
     # เตรียมรายละเอียดการสั่งซื้อเพื่อส่งกลับในรูปแบบ JSON
@@ -134,16 +134,20 @@ def get_order_details(request, order_id):
         {
             'product_name': detail.product.product_name,
             'quantity': detail.quantity,
-            'unit_price': str(detail.price),  # คืนราคาต่อหน่วย
-            'total_item_price': str(detail.quantity * detail.price),  # ราคารวม = ราคาต่อหน่วย * ปริมาณ
+            'unit_price': str(detail.price),  # ราคาต่อหน่วย
+            'total_item_price': str(detail.quantity * detail.price),  # ราคารวม
             'options': [
-                {'name': option.name, 'price': str(option.price)} for option in detail.options.all()
+                {
+                    'name': option.name,
+                    'price': str(option.price),
+                    'quantity': option.quantity  # รวมปริมาณของแต่ละ option
+                } for option in detail.options.all()
             ]
         }
         for detail in order.order_details.all()
     ]
 
-    #เตรียมข้อมูลสุดท้ายเพื่อส่งกลับ
+    # เตรียมข้อมูลสุดท้ายเพื่อส่งกลับ
     data = {
         'order_id': order.id,
         'customer_name': order.customer_name,
@@ -154,6 +158,7 @@ def get_order_details(request, order_id):
     }
 
     return JsonResponse(data)
+
 @login_required
 @csrf_exempt
 def complete_order(request, order_id):
@@ -176,7 +181,6 @@ def PayNow(request, order_id):
     try:
         order = get_object_or_404(Order, id=order_id)
         store = request.user.member_profile.store
-        points_to_use = int(request.POST.get('points', 0))
 
         if request.method == 'POST':
             form = CustomerInfoForm(request.POST)
@@ -294,7 +298,7 @@ def PayMent(request, order_id):
 
     for detail in order.order_details.all():
         selected_options = detail.options.all()
-        total_option_price = sum(option.price for option in selected_options)
+        total_option_price = sum(option.price * option.quantity for option in selected_options)
         unit_price = detail.product.get_discounted_price() + total_option_price
         total_item_price = unit_price * detail.quantity
         order_details.append({
@@ -302,7 +306,10 @@ def PayMent(request, order_id):
             'quantity': detail.quantity,
             'unit_price': unit_price,
             'total_item_price': total_item_price,
-            'options': selected_options,
+            'options': [
+                {'name': option.name, 'price': option.price, 'quantity': option.quantity}
+                for option in selected_options
+            ],
         })
         total_order_price += total_item_price
 
@@ -364,7 +371,7 @@ def print_receipt(request, order_id):
 
     for detail in order.order_details.all():
         selected_options = detail.options.all()
-        total_option_price = sum(option.price for option in selected_options)
+        total_option_price = sum(option.price * option.quantity for option in selected_options)
         unit_price = detail.product.get_discounted_price() + total_option_price
         total_item_price = unit_price * detail.quantity
         order_details.append({
@@ -372,7 +379,10 @@ def print_receipt(request, order_id):
             'quantity': detail.quantity,
             'unit_price': unit_price,
             'total_item_price': total_item_price,
-            'options': selected_options,
+            'options': [
+                {'name': option.name, 'price': option.price, 'quantity': option.quantity}
+                for option in selected_options
+            ],
         })
         total_order_price += total_item_price
     # คำนวณราคาสั่งซื้อทั้งหมด
@@ -751,19 +761,24 @@ def add_to_order(request):
             )
 
             # ดึงตัวเลือกที่เลือกจากฐานข้อมูล
-            selected_options = Option.objects.filter(name__in=options, product=product)
-            total_option_price = sum([option.price for option in selected_options])
+            selected_options = []
+            total_option_price = Decimal(0)
+            for option in options:
+                option_obj = get_object_or_404(Option, name=option['name'], product=product)
+                option_quantity = int(option['quantity'])
+                total_option_price += option_obj.price * option_quantity  # คำนวณราคาตัวเลือกทั้งหมด
+                selected_options.append({'option': option_obj, 'quantity': option_quantity})
 
-            # คำนวณราคารวมพร้อมตัวเลือก
-            unit_price = product.get_discounted_price() + total_option_price
-            total_price = unit_price * quantity
+            # ตรวจสอบว่าตัวเลือกที่เลือกมีเพียงพอหรือไม่
+            total_price = (product.get_discounted_price() + total_option_price) * quantity
 
             # ตรวจสอบวัตถุดิบที่จำเป็นสำหรับผลิตภัณฑ์นี้
             product_ingredients = ProductIngredient.objects.filter(product=product)
             for product_ingredient in product_ingredients:
                 required_quantity = product_ingredient.quantity * quantity
                 if product_ingredient.ingredient.stock < required_quantity:
-                    return JsonResponse({'status': 'error', 'message': f'วัตถุดิบ {product_ingredient.ingredient.name} ไม่เพียงพอ'})
+                    return JsonResponse(
+                        {'status': 'error', 'message': f'วัตถุดิบ {product_ingredient.ingredient.name} ไม่เพียงพอ'})
 
             # จัดการกรณีที่ไม่ได้เลือกตัวเลือกใด ๆ (ถือเป็นผลิตภัณฑ์เดียว)
             if not selected_options:
@@ -777,24 +792,28 @@ def add_to_order(request):
                 order_detail = OrderDetail.objects.filter(
                     order=order,
                     product=product,
-                    options__in=selected_options
+                    options__in=[opt['option'] for opt in selected_options]
                 )
 
             # หากไม่มีรายละเอียดคำสั่งซื้อที่ตรงกัน (ด้วยตัวเลือกเดียวกัน) ให้สร้างรายละเอียดใหม่
             if not order_detail.exists():
+                # ถ้าไม่มี order detail ที่ตรงกัน ให้สร้างใหม่
                 order_detail = OrderDetail.objects.create(
                     order=order,
-                    product=product,  # รับรองว่าสินค้าได้รับมอบหมายอย่างถูกต้อง
+                    product=product,
                     quantity=quantity,
                     price=total_price
                 )
-                order_detail.options.set(selected_options)  # ตั้งค่าตัวเลือกสำหรับรายการสั่งซื้อนี้
-                order_detail.save()
+                for option_data in selected_options:
+                    order_detail.options.add(option_data['option'])
+                    # เก็บปริมาณของแต่ละ option ไว้ในตัวเลือก
+                    option_data['option'].quantity = option_data['quantity']
+                    option_data['option'].save()
             else:
-                # หากมีรายละเอียดคำสั่งซื้อที่มีตัวเลือกเดียวกัน เพียงอัปเดตปริมาณและราคา
+                # ถ้ามีอยู่แล้ว อัปเดตปริมาณและราคาของ order detail
                 order_detail = order_detail.first()
                 order_detail.quantity += quantity
-                order_detail.price = order_detail.quantity * (product.get_discounted_price() + total_option_price)
+                order_detail.price += total_price
                 order_detail.save()
 
             # อัพเดทราคารวมออเดอร์
@@ -806,7 +825,8 @@ def add_to_order(request):
                 product_ingredient.ingredient.stock -= product_ingredient.quantity * quantity
                 product_ingredient.ingredient.save()
 
-            return JsonResponse({'status': 'success', 'message': 'Product added to order successfully', 'total_price': order.total_price})
+            return JsonResponse({'status': 'success', 'message': 'Product added to order successfully',
+                                 'total_price': order.total_price})
 
         except Product.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'ไม่พบสินค้า'})
@@ -845,7 +865,7 @@ def update_order_detail(request):
 
             # คำนวณราคาใหม่ของรายละเอียดคำสั่งซื้อ
             selected_options = order_detail.options.all()
-            total_option_price = sum(option.price for option in selected_options)
+            total_option_price = sum(option.price * option.quantity for option in selected_options)
             unit_price = order_detail.product.get_discounted_price() + total_option_price
             total_price = unit_price * new_quantity
 
@@ -857,7 +877,13 @@ def update_order_detail(request):
             order_detail.order.total_price = sum(item.price for item in order_detail.order.order_details.all())
             order_detail.order.save()
 
-            return JsonResponse({'status': 'success'})
+            return JsonResponse({
+                'status': 'success',
+                'message': 'อัปเดตคำสั่งซื้อสำเร็จ!',
+                'new_quantity': order_detail.quantity,
+                'new_price': order_detail.price,
+                'total_order_price': order_detail.order.total_price
+            })
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'invalid method'})
@@ -1721,7 +1747,7 @@ def PayMent_staff(request, order_id):
 
     for detail in order.order_details.all():
         selected_options = detail.options.all()
-        total_option_price = sum(option.price for option in selected_options)
+        total_option_price = sum(option.price * option.quantity for option in selected_options)
         unit_price = detail.product.get_discounted_price() + total_option_price
         total_item_price = unit_price * detail.quantity
         order_details.append({
@@ -1729,7 +1755,10 @@ def PayMent_staff(request, order_id):
             'quantity': detail.quantity,
             'unit_price': unit_price,
             'total_item_price': total_item_price,
-            'options': selected_options,
+            'options': [
+                {'name': option.name, 'price': option.price, 'quantity': option.quantity}
+                for option in selected_options
+            ],
         })
         total_order_price += total_item_price
 

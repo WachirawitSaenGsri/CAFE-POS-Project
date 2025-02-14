@@ -47,7 +47,7 @@
                             <div class="flex flex-wrap justify-center items-center gap-2">
                                 <span class="text-gray-800 text-md">{{ detail.product.product_name }} x {{ detail.quantity }}</span>
                                 {% for option in detail.options.all %}
-                                <span class="text-sm text-gray-600">| {{ option.name }}</span>
+                                <span class="text-sm text-gray-600">| {{ option.name }} x{{ option.quantity }}</span>
                                 {% endfor %}
                             </div>
                             {% endfor %}
@@ -147,9 +147,12 @@
                         <span>${item.unit_price} ฿</span>
                     </div>`;
                         item.options.forEach(option => {
-                            itemsHtml += `<div class="text-sm text-gray-500 ml-4">+ ${option.name} (${option.price} ฿)</div>`;
+                            itemsHtml += `<div class="text-sm text-gray-500 ml-4">
+                            + ${option.name} (${option.price}฿) x${option.quantity}
+                        </div>`;
                         });
                     });
+
 
                     document.getElementById('order-items').innerHTML = itemsHtml;
                     document.getElementById('total-price').innerText = data.total_price;

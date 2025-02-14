@@ -67,7 +67,7 @@
                                     <span class="product-option">{{ detail.product.product_name }} x {{ detail.quantity }}</span>
                                     {% if detail.options.all %}
                                         {% for option in detail.options.all %}
-                                            <span class="product-option text-gray-600 text-sm">| {{ option.name }}</span>
+                                            <span class="product-option text-gray-600 text-sm">| {{ option.name }} x {{ option.quantity }}</span>
                                         {% endfor %}
                                     {% endif %}
                                 </p>
@@ -144,18 +144,16 @@
 
                     let orderItems = '';
                     data.order_details.forEach(item => {
-                        const totalItemPrice = (item.unit_price * item.quantity).toFixed(2);
-
                         orderItems += `<p class="text-sm">
-                                            <span class="product-option">${item.product_name} (x${item.quantity} ราคา ${item.unit_price} ฿)</span>
-                                         </p>`;
+                                    <span class="product-option">${item.product_name} (x${item.quantity} ราคา ${item.unit_price} ฿)</span>
+                               </p>`;
 
                         if (item.options.length > 0) {
+                            orderItems += `<ul class="ml-4 text-gray-600 text-sm">`;
                             item.options.forEach(option => {
-                                orderItems += `<p class="text-sm text-gray-600">
-                                                ${option.name} (+${option.price} ฿)
-                                               </p>`;
+                                orderItems += `<li>+ ${option.name} (+${option.price} ฿) x${option.quantity}</li>`;
                             });
+                            orderItems += `</ul>`;
                         }
                     });
 

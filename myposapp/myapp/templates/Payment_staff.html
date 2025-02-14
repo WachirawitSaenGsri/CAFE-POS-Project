@@ -88,9 +88,9 @@
                     <tr class="border-b">
                         <td class="py-2 px-4 text-sm">{{ detail.product_name }}</td>
                         <td class="py-2 px-4 text-sm">
-                            {% if detail.options.all %}
-                                {% for option in detail.options.all %}
-                                    {{ option.name }} (+{{ option.price }} ฿)<br>
+                            {% if detail.options %}
+                                {% for option in detail.options %}
+                                    {{ option.name }} (+{{ option.price }} ฿) x{{ option.quantity }}<br>
                                 {% endfor %}
                             {% else %}
                                 ไม่ได้เลือกตัวเลือก
@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('closeSuccessModalButton').addEventListener('click', function () {
         closeModal(successAlertModal);
         setTimeout(() => {
-            window.location.href = '/home/';
+            window.location.href = '/home-employee/';
         }, 500);
     });
 

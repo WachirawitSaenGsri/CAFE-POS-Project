@@ -32,9 +32,9 @@
                     <tr class="border-t">
                         <td class="border border-gray-300 px-4 py-2 text-sm">{{ detail.product_name }}</td>
                         <td class="border border-gray-300 px-4 py-2 text-sm">
-                            {% if detail.options.all %}
-                                {% for option in detail.options.all %}
-                                    {{ option.name }} (+{{ option.price }} ฿)<br>
+                            {% if detail.options %}
+                                {% for option in detail.options %}
+                                    {{ option.name }} (+{{ option.price }} ฿) x{{ option.quantity }}<br>
                                 {% endfor %}
                             {% else %}
                                 ไม่ได้เลือกตัวเลือก

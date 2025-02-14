@@ -1167,6 +1167,10 @@ select {
   width: 25%;
 }
 
+.w-12 {
+  width: 3rem;
+}
+
 .w-16 {
   width: 4rem;
 }
@@ -2314,10 +2318,6 @@ select {
     margin-left: 16rem;
   }
 
-  .lg\:ml-auto {
-    margin-left: auto;
-  }
-
   .lg\:block {
     display: block;
   }
@@ -2332,10 +2332,6 @@ select {
 
   .lg\:w-\[20rem\] {
     width: 20rem;
-  }
-
-  .lg\:w-\[25rem\] {
-    width: 25rem;
   }
 
   .lg\:w-\[45rem\] {
@@ -2366,10 +2362,6 @@ select {
 
   .xl\:w-\[30rem\] {
     width: 30rem;
-  }
-
-  .xl\:w-\[52rem\] {
-    width: 52rem;
   }
 
   .xl\:w-\[60rem\] {
