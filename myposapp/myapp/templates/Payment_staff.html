@@ -1,4 +1,4 @@
-{#Payment_staff.html#}
+{#Payment.html#}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -66,7 +66,23 @@
     <p class="text-lg mb-4 text-center md:text-left">จำนวนเงินทั้งหมด: <strong>{{ total_order_price |floatformat:2}} ฿</strong></p>
     <p class="text-center md:text-left"><strong>ชื่อลูกค้า: </strong>{{ order.customer_name }}</p>
     <p class="text-center md:text-left mb-4"><strong>เบอร์โทรศัพท์: </strong>{{ order.customer_phone }}</p>
-
+<!-- Button to Open Points Modal -->
+<button type="button" id="open_points_modal"
+        class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md">
+    ใช้แต้ม
+</button>
+<!-- Modal สำหรับกรอกแต้ม -->
+<div id="pointsModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden transition-opacity duration-300 ease-in-out">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md transform transition-transform scale-95">
+        <h2 class="text-2xl font-bold text-gray-800 text-center mb-4">ใช้แต้มสะสม</h2>
+        <p class="text-gray-700 text-center">มีแต้มทั้งหมด <strong>{{ customer_points }}</strong> แต้ม</p>
+        <input type="number" id="modal_points_used" class="w-full p-2 border rounded-md mt-4" min="0" value="0">
+        <div class="mt-6 flex justify-center space-x-4">
+            <button id="confirmPointsButton" class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg shadow-md">ยืนยัน</button>
+            <button id="cancelPointsButton" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg shadow-md">ยกเลิก</button>
+        </div>
+    </div>
+</div>
     <!-- Layout Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Order Details Section -->
@@ -109,7 +125,10 @@
                 </table>
             </div>
             <div class="mt-4 font-semibold">
-                <p>ราคารวม: <strong>{{ total_order_price |floatformat:2}} ฿</strong></p>
+                <p class="text-lg font-semibold">ส่วนลด: <span id="discount_amount">{{ discount|floatformat:2 }}</span>
+                    ฿</p>
+                <p class="text-lg font-semibold">ราคารวม: <span
+                        id="discounted_price">{{ discounted_price|floatformat:2 }}</span> ฿</p>
                 <p>แต้มที่ได้รับ: <strong>{{ points_earned }} แต้ม</strong></p>
             </div>
             <button id="cancel_order_button"
@@ -117,7 +136,7 @@
                 ยกเลิกคำสั่งซื้อ
             </button>
         </div>
-        
+
 
             <!-- Payment Form Section -->
             <div class="w-full bg-white shadow-lg rounded-md p-6 mb-6">
@@ -159,6 +178,7 @@
                     </div>
                     <div id="change_message" class="mt-4 font-semibold text-lg text-green-600"></div>
                     <div class="flex justify-start">
+                        <input type="hidden" id="points_used" name="points_used" value="0">
                         <button type="submit" id="confirm_button"
                                 class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md mt-4 payment-button"
                                 disabled>
@@ -206,12 +226,12 @@
 </div>
 <script src="https://js.stripe.com/v3/"></script>
     <script>
-        document.getElementById('amount_paid').addEventListener('input', function() {
-            var totalAmount = {{ total_order_price }};
+        document.getElementById('amount_paid').addEventListener('input', function () {
+            var discountedTotal = parseFloat(document.getElementById('discounted_price').innerText); // Get the final discounted price
             var amountPaid = parseFloat(this.value);
 
-            if (!isNaN(amountPaid) && amountPaid >= totalAmount) {
-                var change = amountPaid - totalAmount;
+            if (!isNaN(amountPaid) && amountPaid >= discountedTotal) {
+                var change = amountPaid - discountedTotal;
                 document.getElementById('change_message').innerHTML = "ทอน: <strong>" + change.toFixed(2) + " ฿</strong>";
                 document.getElementById('confirm_button').disabled = false;
             } else {
@@ -316,6 +336,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     stripeButton.addEventListener('click', async function () {
         try {
+            let discountedTotal = parseFloat(document.getElementById('discounted_price').innerText); // Get final price after discount
             const response = await fetch('/create-checkout-session/', {
                 method: 'POST',
                 headers: {
@@ -324,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 body: JSON.stringify({
                     order_id: '{{ order.id }}',
-                    amount: {{ total_order_price }},
+                    amount: discountedTotal,
                     currency: 'thb'
                 })
             });
@@ -363,12 +384,86 @@ document.addEventListener('DOMContentLoaded', function () {
         // Initial check
         toggleStripeButton();
     });
+
         function addTotalAmount() {
-    var amountPaid = document.getElementById('amount_paid');
-    var totalAmount = {{ total_order_price }};  // ดึงค่าราคารวมจาก template
-    amountPaid.value = totalAmount.toFixed(2);  // ใส่ค่าลงในช่องป้อนข้อมูล
-    amountPaid.dispatchEvent(new Event('input'));  // เรียก event input เพื่ออัปเดตค่า
-}
+            var amountPaid = document.getElementById('amount_paid');
+            var discountedTotal = parseFloat(document.getElementById('discounted_price').innerText);  // Get updated total after discount
+            amountPaid.value = discountedTotal.toFixed(2);  // Set input value
+            amountPaid.dispatchEvent(new Event('input'));  // Trigger input event to update UI
+        }
+document.addEventListener('DOMContentLoaded', function () {
+    const openPointsModal = document.getElementById('open_points_modal');
+    const pointsModal = document.getElementById('pointsModal');
+    const confirmPointsButton = document.getElementById('confirmPointsButton');
+    const cancelPointsButton = document.getElementById('cancelPointsButton');
+    const modalPointsUsed = document.getElementById('modal_points_used');
+    const pointsUsedInput = document.getElementById('points_used');
+    const discountedPrice = document.getElementById('discounted_price');
+    const discountAmount = document.getElementById('discount_amount');
+    const pointsToBaht = {{ points_config.points_to_baht }};
+    const customerPoints = {{ customer_points }};
+    let totalOrderPrice = parseFloat(discountedPrice.innerText); 
+
+    function openModal() {
+        pointsModal.classList.remove('hidden');
+        pointsModal.classList.add('opacity-100', 'scale-100');
+    }
+
+    function closeModal() {
+        pointsModal.classList.add('hidden');
+        pointsModal.classList.remove('opacity-100', 'scale-100');
+    }
+
+    openPointsModal.addEventListener('click', openModal);
+    cancelPointsButton.addEventListener('click', closeModal);
+
+    confirmPointsButton.addEventListener('click', function () {
+        let pointsUsed = parseInt(modalPointsUsed.value) || 0;
+
+        if (pointsUsed > customerPoints) {
+            modalPointsUsed.value = customerPoints;
+            return;
+        }
+
+        let discount = pointsUsed / pointsToBaht;
+        let finalPrice = totalOrderPrice - discount;
+        if (finalPrice < 0) finalPrice = 0;
+
+        pointsUsedInput.value = pointsUsed;
+        discountedPrice.innerText = finalPrice.toFixed(2);
+        discountAmount.innerText = discount.toFixed(2);
+
+        closeModal();
+    });
+
+    modalPointsUsed.addEventListener('input', function () {
+        let pointsUsed = parseInt(this.value) || 0;
+        if (pointsUsed > customerPoints) {
+            this.value = customerPoints;
+        }
+    });
+});
+        document.getElementById('confirmPointsButton').addEventListener('click', function () {
+    let pointsUsed = parseInt(document.getElementById('modal_points_used').value) || 0;
+    let pointsToBaht = {{ points_config.points_to_baht }};
+    let customerPoints = {{ customer_points }};
+    let totalOrderPrice = parseFloat(document.getElementById('discounted_price').innerText) || 0;
+
+    if (pointsUsed > customerPoints) {
+        pointsUsed = customerPoints;
+    }
+
+    let discount = pointsUsed / pointsToBaht;
+    let finalPrice = totalOrderPrice - discount;
+    if (finalPrice < 0) finalPrice = 0; // ✅ ป้องกันราคาติดลบ
+
+    document.getElementById('points_used').value = pointsUsed; // ✅ อัปเดต input hidden
+    document.getElementById('discounted_price').innerText = finalPrice.toFixed(2);
+    document.getElementById('discount_amount').innerText = discount.toFixed(2);
+
+    closeModal();
+});
+
     </script>
 </body>
 </html>

@@ -290,10 +290,7 @@ def payment_cancel(request):
 def PayMent(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     store = request.user.member_profile.store
-    # เริ่มต้นราคาสั่งซื้อทั้งหมด
     total_order_price = Decimal(0)
-
-    # รายการเก็บรายละเอียดคำสั่งซื้อพร้อมการคำนวณราคาที่อัปเดต
     order_details = []
 
     for detail in order.order_details.all():
@@ -313,55 +310,78 @@ def PayMent(request, order_id):
         })
         total_order_price += total_item_price
 
-    # ดึงการกำหนดค่าคะแนน (บาทละกี่คะแนน)
     points_config = PointsConfig.objects.first()
-
     points_earned = 0
+    discount = Decimal(0)
+
     if points_config:
-        points_earned = int(total_order_price * points_config.points_per_baht)  # คำนวณคะแนนที่ได้รับ
+        points_earned = int(total_order_price * points_config.points_per_baht)
 
-    # หากส่งแบบฟอร์มแล้วให้ดำเนินการชำระเงิน
+    customer = None
+    customer_points = 0
+
+    if order.customer_phone:
+        try:
+            customer = customerMember.objects.get(phone=order.customer_phone)
+            customer_points = customer.points
+        except customerMember.DoesNotExist:
+            customer = None
+
     if request.method == 'POST':
-        payment_method = request.POST.get('payment_method', None)
-        amount_paid = Decimal(request.POST.get('amount_paid', 0))  # แปลง amount_paid เป็นทศนิยม
+        payment_method = request.POST.get('payment_method')
+        amount_paid = Decimal(request.POST.get('amount_paid', 0))
+        points_used = int(request.POST.get('points_used', '0'))  # ✅ ดึงค่าที่ใช้แต้มออกมา
 
-        if not payment_method or not amount_paid:
-            messages.error(request, 'กรุณากรอกข้อมูลการชำระเงินให้ครบถ้วน')
-            return render(request, 'Payment.html', {
-                'order': order,
-                'order_details': order_details,
-                'total_order_price': total_order_price,
-                'points_earned': points_earned,
-            })
+        if customer and points_config and points_used > 0:
+            if points_used > customer.points:
+                messages.error(request, 'แต้มสะสมของคุณไม่เพียงพอ กรุณาลองใหม่')
+                return redirect('payment', order_id=order.id)
 
-        # คำนวณตังค์ทอน
+            # ✅ คำนวณส่วนลดจากแต้ม
+            discount = Decimal(points_used) / points_config.points_to_baht
+            total_order_price -= discount
+            if total_order_price < 0:
+                total_order_price = 0  # ป้องกันราคาติดลบ
+
+            # ✅ บันทึกแต้มที่ใช้ลงฐานข้อมูล
+            order.points_used = points_used  # ✅ อัปเดตแต้มที่ใช้
+            order.total_price = total_order_price  # ✅ อัปเดตราคาสุทธิหลังลดแต้ม
+            order.save()  # ✅ บันทึกคำสั่งซื้ออัปเดตลงฐานข้อมูล
+
+            # ✅ อัปเดตแต้มลูกค้า
+            customer.points -= points_used
+            customer.save()
+
+        # ✅ คำนวณเงินทอน
         change = amount_paid - total_order_price
 
-        # บันทึกรายละเอียดการชำระเงิน
+        # ✅ บันทึกการชำระเงิน
         Payment.objects.create(
             order=order,
-            amount=total_order_price,
+            amount=total_order_price,  # ✅ ใช้ราคาที่ลดแล้ว
             payment_method=payment_method,
-            payment_status='Success' if change >= 0 else 'Failed',
+            payment_status='Success',
             store=store,
         )
 
-        # อัปเดตคะแนนลูกค้าหากพบลูกค้าจากเบอร์โทร
-        if order.customer_phone:
-            try:
-                customer = customerMember.objects.get(phone=order.customer_phone)
-                customer.points += points_earned
-                customer.save()
-            except customerMember.DoesNotExist:
-                messages.warning(request, 'ไม่พบข้อมูลลูกค้า')
+        # ✅ ให้แต้มลูกค้าเพิ่มจากการสั่งซื้อ
+        if customer:
+            customer.points += points_earned
+            customer.save()
+
         return redirect('order')
 
     return render(request, 'Payment.html', {
         'order': order,
         'order_details': order_details,
         'total_order_price': total_order_price,
+        'discount': discount,
+        'discounted_price': total_order_price,
         'points_earned': points_earned,
+        'customer_points': customer_points,
+        'points_config': points_config,
     })
+
 @login_required
 def print_receipt(request, order_id):
     # Get the order object
@@ -1739,10 +1759,7 @@ def PayNow_staff(request, order_id):
 def PayMent_staff(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     store = request.user.member_profile.store
-    # เริ่มต้นราคาสั่งซื้อทั้งหมด
     total_order_price = Decimal(0)
-
-    # รายการเก็บรายละเอียดคำสั่งซื้อพร้อมการคำนวณราคาที่อัปเดต
     order_details = []
 
     for detail in order.order_details.all():
@@ -1762,52 +1779,74 @@ def PayMent_staff(request, order_id):
         })
         total_order_price += total_item_price
 
-    # ดึงการกำหนดค่าคะแนน (บาทละกี่คะแนน)
     points_config = PointsConfig.objects.first()
-
     points_earned = 0
+    discount = Decimal(0)
+
     if points_config:
-        points_earned = int(total_order_price * points_config.points_per_baht)  # คำนวณคะแนนที่ได้รับ
+        points_earned = int(total_order_price * points_config.points_per_baht)
 
-    # หากส่งแบบฟอร์มแล้วให้ดำเนินการชำระเงิน
+    customer = None
+    customer_points = 0
+
+    if order.customer_phone:
+        try:
+            customer = customerMember.objects.get(phone=order.customer_phone)
+            customer_points = customer.points
+        except customerMember.DoesNotExist:
+            customer = None
+
     if request.method == 'POST':
-        payment_method = request.POST.get('payment_method', None)
-        amount_paid = Decimal(request.POST.get('amount_paid', 0))  # แปลง amount_paid เป็นทศนิยม
+        payment_method = request.POST.get('payment_method')
+        amount_paid = Decimal(request.POST.get('amount_paid', 0))
+        points_used = int(request.POST.get('points_used', '0'))  # ✅ ดึงค่าที่ใช้แต้มออกมา
 
-        if not payment_method or not amount_paid:
-            messages.error(request, 'กรุณากรอกข้อมูลการชำระเงินให้ครบถ้วน')
-            return render(request, 'Payment_staff.html', {
-                'order': order,
-                'order_details': order_details,
-                'total_order_price': total_order_price,
-                'points_earned': points_earned,
-            })
+        if customer and points_config and points_used > 0:
+            if points_used > customer.points:
+                messages.error(request, 'แต้มสะสมของคุณไม่เพียงพอ กรุณาลองใหม่')
+                return redirect('payment_employee', order_id=order.id)
 
-        # คำนวณตังค์ทอน
+            # ✅ คำนวณส่วนลดจากแต้ม
+            discount = Decimal(points_used) / points_config.points_to_baht
+            total_order_price -= discount
+            if total_order_price < 0:
+                total_order_price = 0  # ป้องกันราคาติดลบ
+
+            # ✅ บันทึกแต้มที่ใช้ลงฐานข้อมูล
+            order.points_used = points_used  # ✅ อัปเดตแต้มที่ใช้
+            order.total_price = total_order_price  # ✅ อัปเดตราคาสุทธิหลังลดแต้ม
+            order.save()  # ✅ บันทึกคำสั่งซื้ออัปเดตลงฐานข้อมูล
+
+            # ✅ อัปเดตแต้มลูกค้า
+            customer.points -= points_used
+            customer.save()
+
+        # ✅ คำนวณเงินทอน
         change = amount_paid - total_order_price
 
-        # บันทึกรายละเอียดการชำระเงิน
+        # ✅ บันทึกการชำระเงิน
         Payment.objects.create(
             order=order,
-            amount=total_order_price,
+            amount=total_order_price,  # ✅ ใช้ราคาที่ลดแล้ว
             payment_method=payment_method,
-            payment_status='Success' if change >= 0 else 'Failed',
+            payment_status='Success',
             store=store,
         )
 
-        # อัปเดตคะแนนลูกค้าหากพบลูกค้าจากเบอร์โทร
-        if order.customer_phone:
-            try:
-                customer = customerMember.objects.get(phone=order.customer_phone)
-                customer.points += points_earned
-                customer.save()
-            except customerMember.DoesNotExist:
-                messages.warning(request, 'ไม่พบข้อมูลลูกค้า')
+        # ✅ ให้แต้มลูกค้าเพิ่มจากการสั่งซื้อ
+        if customer:
+            customer.points += points_earned
+            customer.save()
+
         return redirect('order_employee')
 
     return render(request, 'Payment_staff.html', {
         'order': order,
         'order_details': order_details,
         'total_order_price': total_order_price,
+        'discount': discount,
+        'discounted_price': total_order_price,
         'points_earned': points_earned,
+        'customer_points': customer_points,
+        'points_config': points_config,
     })

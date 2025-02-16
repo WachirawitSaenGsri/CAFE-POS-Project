@@ -1,3 +1,4 @@
+{% load humanize %}
 {% load static tailwind_tags %}
 <!DOCTYPE html>
 <html lang="en">
@@ -65,11 +66,11 @@
         </div>
         <div class="bg-white rounded-lg shadow-md p-6">
             <h3 class="text-lg font-bold text-gray-800">ราคาเฉลี่ยต่อการสั่งซื้อ</h3>
-            <p class="text-3xl font-semibold text-blue-600">฿{{ average_order_value }}</p>
+            <p class="text-3xl font-semibold text-blue-600">฿{{ average_order_value|floatformat:2|intcomma }}</p>
         </div>
         <div class="bg-white rounded-lg shadow-md p-6">
             <h3 class="text-lg font-bold text-gray-800">รายได้รวม</h3>
-            <p class="text-3xl font-semibold text-purple-600">฿{{ total_revenue }}</p>
+            <p class="text-3xl font-semibold text-purple-600">฿{{ total_revenue|floatformat:2|intcomma }}</p>
         </div>
         <div class="bg-white rounded-lg shadow-md p-6">
             <h3 class="text-lg font-bold text-gray-800">เมนูขายดี</h3>

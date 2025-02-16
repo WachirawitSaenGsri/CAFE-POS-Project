@@ -1,4 +1,5 @@
 <!-- manage_employees.html -->
+{% load humanize %}
 {% load static tailwind_tags %}
 <!DOCTYPE html>
 <html lang="en">
@@ -169,13 +170,13 @@
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-lg font-bold text-gray-800">พนักงานที่ทำยอดขายได้เยอะที่สุด</h3>
                 <p id="topSalesEmployee" class="text-lg font-semibold text-green-600">
-                    {{ top_sales_employee.user.first_name }} {{ top_sales_employee.user.last_name }} ({{ top_sales_employee.total_sales }} บาท)
+                    {{ top_sales_employee.user.first_name }} {{ top_sales_employee.user.last_name }} ({{ top_sales_employee.total_sales|floatformat:2|intcomma }} บาท)
                 </p>
             </div>
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-lg font-bold text-gray-800">พนักงานที่ทำออเดอร์ได้เยอะที่สุด</h3>
                 <p id="topOrdersEmployee" class="text-lg font-semibold text-blue-600">
-                    {{ top_orders_employee.user.first_name }} {{ top_orders_employee.user.last_name }} ({{ top_orders_employee.total_orders }} ออเดอร์)
+                    {{ top_orders_employee.user.first_name }} {{ top_orders_employee.user.last_name }} ({{ top_orders_employee.total_orders|intcomma }} ออเดอร์)
                 </p>
             </div>
         </section>
@@ -327,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => response.json())
             .then(data => {
                 document.getElementById('totalOrders').textContent = data.total_orders;
-                document.getElementById('totalRevenue').textContent = data.total_revenue;
+                document.getElementById('totalRevenue').textContent = Number(data.total_revenue).toFixed(2);
                 document.getElementById('averageOrderValue').textContent = Number(data.average_order_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             })
             .catch(error => console.error('Error fetching performance data:', error));
@@ -400,8 +401,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (data.length > 0) {
                     const topSalesEmployee = data[0];
                     const topOrdersEmployee = data[0];
-
-                    topSalesEmployeeText.innerHTML = `${topSalesEmployee.name} (${topSalesEmployee.total_sales} บาท)`;
+                    const formattedTotalSales = Number(topSalesEmployee.total_sales).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                    topSalesEmployeeText.innerHTML = `${topSalesEmployee.name} (${formattedTotalSales} บาท)`;
                     topOrdersEmployeeText.innerHTML = `${topOrdersEmployee.name} (${topOrdersEmployee.total_orders} ออเดอร์)`;
 
                     // อัปเดตกราฟ

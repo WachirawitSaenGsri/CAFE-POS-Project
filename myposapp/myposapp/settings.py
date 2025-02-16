@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django_browser_reload',
     'django_dbml',
     'myapp',
+    'django.contrib.humanize',
 ]
 NPM_BIN_PATH = r"C:\Program Files\nodejs\npm.cmd"
 TAILWIND_APP_NAME = 'theme'
