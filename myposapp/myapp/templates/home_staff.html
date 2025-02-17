@@ -154,9 +154,10 @@
                             <div>
                                 <h3 class="text-sm font-medium text-gray-700">{{ detail.product.product_name }}</h3>
                                 <p class="text-xs text-gray-500">
-                                    {% if detail.options.all %}
-                                        {% for option in detail.options.all %}
-                                            {{ option.name }} (+{{ option.price }} ฿) x {{ option.quantity }}<br>
+                                    {% if detail.order_detail_options.all %}
+                                        {% for option in detail.order_detail_options.all %}
+                                            {{ option.option.name }} (+{{ option.option.price }} ฿) x
+                                            {{ option.quantity }}<br>
                                         {% endfor %}
                                     {% else %}
                                         <span class="text-gray-400">ไม่มีตัวเลือก</span>
@@ -245,71 +246,50 @@ document.querySelectorAll('.option-btn').forEach(button => {
 
 document.querySelectorAll('.add-to-order-btn').forEach(button => {
     button.addEventListener('click', function(event) {
-        event.preventDefault();  // Prevent default form submission
-
-        // Disable the button to prevent multiple clicks
+        event.preventDefault();
         this.disabled = true;
-        this.innerText = 'Adding...';
+        this.innerText = 'กำลังเพิ่ม...';
 
-        const productId = this.getAttribute('data-product-id');  // Get product ID
-        const price = this.getAttribute('data-price');  // Get base price of the selected product
+        const productId = this.getAttribute('data-product-id');
         const quantity = 1;
-
-        // Create an array to store selected options with their quantities
         const selectedOptions = [];
 
-        // Find selected option buttons
         const optionButtons = document.querySelectorAll(`#options-${productId} .option-btn.bg-yellow-500`);
         optionButtons.forEach(optionBtn => {
-            const optionName = optionBtn.getAttribute('data-option');  // Get option name
-            const optionPrice = parseFloat(optionBtn.getAttribute('data-price'));  // Get option price
             const optionId = optionBtn.getAttribute('data-option-id');
-
-            // Check if there is an input for the quantity
             const optionQuantityElement = document.getElementById(`option-quantity-${optionId}`);
-            if (optionQuantityElement) {
-                const optionQuantity = parseInt(optionQuantityElement.value) || 1; // Get option quantity
-                selectedOptions.push({
-                    name: optionName,
-                    price: optionPrice,
-                    quantity: optionQuantity  // Quantity of the selected option
-                });
-            }
+            const optionQuantity = parseInt(optionQuantityElement.value) || 1;
+            selectedOptions.push({ option_id: optionId, quantity: optionQuantity });
         });
 
-        // Send product and option data to the server via fetch
         fetch('/add_to_order/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}',  // Send csrf token
+                'X-CSRFToken': '{{ csrf_token }}',
             },
             body: JSON.stringify({
                 product_id: productId,
-                options: selectedOptions,  // Selected options
-                quantity: quantity  // Initial product quantity is 1 (or can be adjusted from UI)
+                options: selectedOptions,
+                quantity: quantity
             })
         })
-        .then(response => response.json())  // Parse the response as JSON
+        .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                showModal('Product added to order successfully!', 'สินค้าถูกเพิ่มในคำสั่งซื้อเรียบร้อยแล้ว.');
-                // Reload the page to see the updated order details
-                setTimeout(function() {
-                    window.location.reload(); // Reload the page
-                }, 300);
+                showModal('เพิ่มสินค้าเรียบร้อย', 'สินค้าถูกเพิ่มในคำสั่งซื้อสำเร็จ!');
+                setTimeout(() => window.location.reload(), 500);
             } else {
-                showModal('Error', data.message);
+                showModal('เกิดข้อผิดพลาด', data.message);
             }
-
             this.disabled = false;
-            this.innerText = 'Add to Order';  // Reset button text
+            this.innerText = 'เพิ่มในคำสั่งซื้อ';
         })
         .catch(error => {
-            console.log(error);
-            showModal('Error', data.message);
+            console.error(error);
+            showModal('เกิดข้อผิดพลาด', 'ไม่สามารถเพิ่มสินค้าได้');
             this.disabled = false;
-            this.innerText = 'Add to Order';  // Reset button text in case of error
+            this.innerText = 'เพิ่มในคำสั่งซื้อ';
         });
     });
 });

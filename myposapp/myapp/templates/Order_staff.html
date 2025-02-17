@@ -46,8 +46,8 @@
                             {% for detail in order.order_details.all %}
                             <div class="flex flex-wrap justify-center items-center gap-2">
                                 <span class="text-gray-800 text-md">{{ detail.product.product_name }} x {{ detail.quantity }}</span>
-                                {% for option in detail.options.all %}
-                                <span class="text-sm text-gray-600">| {{ option.name }} x{{ option.quantity }}</span>
+                                {% for option in detail.order_detail_options.all %}
+                                <span class="text-sm text-gray-600">| {{ option.option.name }} x{{ option.quantity }}</span>
                                 {% endfor %}
                             </div>
                             {% endfor %}

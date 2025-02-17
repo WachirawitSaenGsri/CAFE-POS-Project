@@ -134,14 +134,14 @@ def get_order_details(request, order_id):
         {
             'product_name': detail.product.product_name,
             'quantity': detail.quantity,
-            'unit_price': str(detail.price),  # ราคาต่อหน่วย
-            'total_item_price': str(detail.quantity * detail.price),  # ราคารวม
+            'unit_price': str(detail.price),
+            'total_item_price': str(detail.quantity * detail.price),
             'options': [
                 {
-                    'name': option.name,
-                    'price': str(option.price),
-                    'quantity': option.quantity  # รวมปริมาณของแต่ละ option
-                } for option in detail.options.all()
+                    'name': option.option.name,
+                    'price': str(option.option.price),
+                    'quantity': option.quantity
+                } for option in detail.order_detail_options.all()
             ]
         }
         for detail in order.order_details.all()
@@ -294,18 +294,19 @@ def PayMent(request, order_id):
     order_details = []
 
     for detail in order.order_details.all():
-        selected_options = detail.options.all()
-        total_option_price = sum(option.price * option.quantity for option in selected_options)
+        selected_options = detail.order_detail_options.all()
+        total_option_price = sum(opt.option.price * opt.quantity for opt in selected_options)
         unit_price = detail.product.get_discounted_price() + total_option_price
         total_item_price = unit_price * detail.quantity
+
         order_details.append({
             'product_name': detail.product.product_name,
             'quantity': detail.quantity,
             'unit_price': unit_price,
             'total_item_price': total_item_price,
             'options': [
-                {'name': option.name, 'price': option.price, 'quantity': option.quantity}
-                for option in selected_options
+                {'name': opt.option.name, 'price': opt.option.price, 'quantity': opt.quantity}
+                for opt in selected_options
             ],
         })
         total_order_price += total_item_price
@@ -390,18 +391,19 @@ def print_receipt(request, order_id):
     order_details = []
 
     for detail in order.order_details.all():
-        selected_options = detail.options.all()
-        total_option_price = sum(option.price * option.quantity for option in selected_options)
+        selected_options = detail.order_detail_options.all()
+        total_option_price = sum(opt.option.price * opt.quantity for opt in selected_options)
         unit_price = detail.product.get_discounted_price() + total_option_price
         total_item_price = unit_price * detail.quantity
+
         order_details.append({
             'product_name': detail.product.product_name,
             'quantity': detail.quantity,
             'unit_price': unit_price,
             'total_item_price': total_item_price,
             'options': [
-                {'name': option.name, 'price': option.price, 'quantity': option.quantity}
-                for option in selected_options
+                {'name': opt.option.name, 'price': opt.option.price, 'quantity': opt.quantity}
+                for opt in selected_options
             ],
         })
         total_order_price += total_item_price
@@ -766,87 +768,96 @@ def add_to_order(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         product_id = data.get('product_id')
-        options = data.get('options', [])  # Array ของตัวเลือกที่เลือก
+        options = data.get('options', [])  # List ของตัวเลือกที่เลือก
         quantity = data.get('quantity', 1)
 
         try:
             # รับสินค้า
             product = Product.objects.get(id=product_id)
 
-            # ดึงหรือสร้างคำสั่งซื้อสำหรับผู้ใช้ที่เข้าสู่ระบบ
+            # ดึงหรือสร้างคำสั่งซื้อที่ยังไม่สมบูรณ์
             order, created = Order.objects.get_or_create(
                 customer_name=' ',
                 customer_phone=' ',
                 defaults={'total_price': 0}
             )
 
-            # ดึงตัวเลือกที่เลือกจากฐานข้อมูล
-            selected_options = []
-            total_option_price = Decimal(0)
-            for option in options:
-                option_obj = get_object_or_404(Option, name=option['name'], product=product)
-                option_quantity = int(option['quantity'])
-                total_option_price += option_obj.price * option_quantity  # คำนวณราคาตัวเลือกทั้งหมด
-                selected_options.append({'option': option_obj, 'quantity': option_quantity})
-
-            # ตรวจสอบว่าตัวเลือกที่เลือกมีเพียงพอหรือไม่
-            total_price = (product.get_discounted_price() + total_option_price) * quantity
-
-            # ตรวจสอบวัตถุดิบที่จำเป็นสำหรับผลิตภัณฑ์นี้
+            # ตรวจสอบวัตถุดิบก่อนสร้างคำสั่งซื้อ
             product_ingredients = ProductIngredient.objects.filter(product=product)
             for product_ingredient in product_ingredients:
                 required_quantity = product_ingredient.quantity * quantity
                 if product_ingredient.ingredient.stock < required_quantity:
-                    return JsonResponse(
-                        {'status': 'error', 'message': f'วัตถุดิบ {product_ingredient.ingredient.name} ไม่เพียงพอ'})
+                    return JsonResponse({'status': 'error', 'message': f'วัตถุดิบ {product_ingredient.ingredient.name} ไม่เพียงพอ'})
 
-            # จัดการกรณีที่ไม่ได้เลือกตัวเลือกใด ๆ (ถือเป็นผลิตภัณฑ์เดียว)
-            if not selected_options:
+            # คำนวณราคาพื้นฐานของสินค้า
+            base_price = product.get_discounted_price() * quantity
+            total_option_price = 0
+
+
+            # ตรวจสอบว่ามี OrderDetail เดิมที่ไม่มีตัวเลือกอยู่หรือไม่
+            if not options:
                 order_detail = OrderDetail.objects.filter(
                     order=order,
-                    product=product,
-                    options=None  # ไม่มีตัวเลือก มีแต่ตัวผลิตภัณฑ์เอง
-                )
+                    product=product
+                ).first()
             else:
-                # จัดการกรณีที่เลือกตัวเลือกไว้ (ถือเป็นชุดค่าผสมที่ไม่ซ้ำใคร)
+                # ตรวจสอบ OrderDetail ที่มีตัวเลือกตรงกัน
                 order_detail = OrderDetail.objects.filter(
                     order=order,
                     product=product,
-                    options__in=[opt['option'] for opt in selected_options]
-                )
+                    order_detail_options__option__in=[opt['option_id'] for opt in options]
+                ).first()
 
-            # หากไม่มีรายละเอียดคำสั่งซื้อที่ตรงกัน (ด้วยตัวเลือกเดียวกัน) ให้สร้างรายละเอียดใหม่
-            if not order_detail.exists():
-                # ถ้าไม่มี order detail ที่ตรงกัน ให้สร้างใหม่
+            if order_detail:
+                # ถ้ามีรายการเดิมอยู่แล้ว อัปเดตปริมาณและราคา
+                order_detail.quantity += quantity
+                order_detail.price += base_price
+                order_detail.save()
+            else:
+                # ถ้ายังไม่มี ให้สร้างใหม่
                 order_detail = OrderDetail.objects.create(
                     order=order,
                     product=product,
                     quantity=quantity,
-                    price=total_price
+                    price=base_price
                 )
-                for option_data in selected_options:
-                    order_detail.options.add(option_data['option'])
-                    # เก็บปริมาณของแต่ละ option ไว้ในตัวเลือก
-                    option_data['option'].quantity = option_data['quantity']
-                    option_data['option'].save()
-            else:
-                # ถ้ามีอยู่แล้ว อัปเดตปริมาณและราคาของ order detail
-                order_detail = order_detail.first()
-                order_detail.quantity += quantity
-                order_detail.price += total_price
-                order_detail.save()
 
-            # อัพเดทราคารวมออเดอร์
-            order.total_price = sum([item.price for item in order.order_details.all()])
+            # จัดการตัวเลือกของสินค้า
+            for option_data in options:
+                option = get_object_or_404(Option, id=option_data['option_id'])
+                option_quantity = int(option_data['quantity'])
+
+                # ตรวจสอบว่ามีตัวเลือกนี้ใน `OrderDetailOption` อยู่แล้วหรือไม่
+                order_detail_option, created = OrderDetailOption.objects.get_or_create(
+                    order_detail=order_detail,
+                    option=option,
+                    defaults={'quantity': option_quantity}
+                )
+
+                if not created:
+                    # ถ้ามีอยู่แล้ว และจำนวนที่เลือกตรงกัน ไม่ต้องเพิ่ม
+                    if order_detail_option.quantity != option_quantity:
+                        order_detail_option.quantity += option_quantity
+                        order_detail_option.save()
+
+
+                # คำนวณราคาตัวเลือกทั้งหมด
+                total_option_price += order_detail_option.total_price()
+
+            # อัปเดตราคาสุทธิของ OrderDetail
+            order_detail.price += total_option_price
+            order_detail.save()
+
+            # อัพเดทราคารวมของ Order
+            order.total_price = sum(item.total_price() for item in order.order_details.all())
             order.save()
 
-            # อัพเดทปริมาณวัตถุดิบ
+            # อัปเดตปริมาณวัตถุดิบหลังจากเพิ่มคำสั่งซื้อ
             for product_ingredient in product_ingredients:
                 product_ingredient.ingredient.stock -= product_ingredient.quantity * quantity
                 product_ingredient.ingredient.save()
 
-            return JsonResponse({'status': 'success', 'message': 'Product added to order successfully',
-                                 'total_price': order.total_price})
+            return JsonResponse({'status': 'success', 'message': 'เพิ่มสินค้าในคำสั่งซื้อสำเร็จ!', 'total_price': order.total_price})
 
         except Product.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'ไม่พบสินค้า'})
@@ -863,19 +874,19 @@ def update_order_detail(request):
             order_detail_id = data.get('order_detail_id')
             new_quantity = int(data.get('quantity', 1))
 
-            #รับรายละเอียดการสั่งซื้อ
+            # รับรายละเอียดคำสั่งซื้อ
             order_detail = get_object_or_404(OrderDetail, id=order_detail_id)
             old_quantity = order_detail.quantity
 
             # คำนวณความแตกต่างในปริมาณ
             quantity_diff = new_quantity - old_quantity
 
-            # ตรวจสอบว่าสต็อกเพียงพอสำหรับปริมาณใหม่หรือไม่
+            # ตรวจสอบวัตถุดิบเพียงพอหรือไม่
             product_ingredients = ProductIngredient.objects.filter(product=order_detail.product)
             for product_ingredient in product_ingredients:
                 ingredient = product_ingredient.ingredient
                 if ingredient.stock < product_ingredient.quantity * quantity_diff:
-                    return JsonResponse({'status': 'error', 'message': f'สต็อก {ingredient.name} ไม่เพียงพอ'})
+                    return JsonResponse({'status': 'error', 'message': f'วัตถุดิบ {ingredient.name} ไม่เพียงพอ'})
 
             # อัพเดตปริมาณวัตถุดิบ
             for product_ingredient in product_ingredients:
@@ -883,9 +894,8 @@ def update_order_detail(request):
                 ingredient.stock -= product_ingredient.quantity * quantity_diff
                 ingredient.save()
 
-            # คำนวณราคาใหม่ของรายละเอียดคำสั่งซื้อ
-            selected_options = order_detail.options.all()
-            total_option_price = sum(option.price * option.quantity for option in selected_options)
+            # คำนวณราคาใหม่
+            total_option_price = sum(opt.option.price * opt.quantity for opt in order_detail.order_detail_options.all())
             unit_price = order_detail.product.get_discounted_price() + total_option_price
             total_price = unit_price * new_quantity
 
@@ -894,7 +904,7 @@ def update_order_detail(request):
             order_detail.save()
 
             # อัพเดตราคารวมของคำสั่งซื้อ
-            order_detail.order.total_price = sum(item.price for item in order_detail.order.order_details.all())
+            order_detail.order.total_price = sum(item.total_price() for item in order_detail.order.order_details.all())
             order_detail.order.save()
 
             return JsonResponse({
@@ -908,6 +918,7 @@ def update_order_detail(request):
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'invalid method'})
 
+
 @login_required
 @csrf_exempt
 def delete_order_detail(request):
@@ -919,21 +930,24 @@ def delete_order_detail(request):
             # ดึงรายละเอียดคำสั่งซื้อ
             order_detail = get_object_or_404(OrderDetail, id=order_detail_id)
 
-            # อัพเดตปริมาณวัตถุดิบ
+            # คืนค่าวัตถุดิบกลับไป
             product_ingredients = ProductIngredient.objects.filter(product=order_detail.product)
             for product_ingredient in product_ingredients:
                 ingredient = product_ingredient.ingredient
                 ingredient.stock += product_ingredient.quantity * order_detail.quantity
                 ingredient.save()
 
+            # ลบตัวเลือกของสินค้า
+            order_detail.order_detail_options.all().delete()
+
             # ลบรายละเอียดคำสั่งซื้อ
             order_detail.delete()
 
             # อัพเดตราคารวมของคำสั่งซื้อ
-            order_detail.order.total_price = sum(item.price for item in order_detail.order.order_details.all())
+            order_detail.order.total_price = sum(item.total_price() for item in order_detail.order.order_details.all())
             order_detail.order.save()
 
-            return JsonResponse({'status': 'success'})
+            return JsonResponse({'status': 'success', 'message': 'ลบรายการสำเร็จ', 'total_order_price': order_detail.order.total_price})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'invalid method'})
@@ -1763,18 +1777,19 @@ def PayMent_staff(request, order_id):
     order_details = []
 
     for detail in order.order_details.all():
-        selected_options = detail.options.all()
-        total_option_price = sum(option.price * option.quantity for option in selected_options)
+        selected_options = detail.order_detail_options.all()
+        total_option_price = sum(opt.option.price * opt.quantity for opt in selected_options)
         unit_price = detail.product.get_discounted_price() + total_option_price
         total_item_price = unit_price * detail.quantity
+
         order_details.append({
             'product_name': detail.product.product_name,
             'quantity': detail.quantity,
             'unit_price': unit_price,
             'total_item_price': total_item_price,
             'options': [
-                {'name': option.name, 'price': option.price, 'quantity': option.quantity}
-                for option in selected_options
+                {'name': opt.option.name, 'price': opt.option.price, 'quantity': opt.quantity}
+                for opt in selected_options
             ],
         })
         total_order_price += total_item_price

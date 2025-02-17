@@ -94,10 +94,9 @@ class Option(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='options')  # เชื่อมโยงกับ Product
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    quantity = models.PositiveIntegerField(default=1)  # Add this field
 
     def __str__(self):
-        return f"{self.name} (+{self.price} ฿) x{self.quantity}"
+        return f"{self.name} (+{self.price} ฿)"
 
 
 class Order(models.Model):
@@ -117,16 +116,28 @@ class Order(models.Model):
         self.total_price = sum([item.price for item in self.order_details.all()])
         self.save()
 
+
 class OrderDetail(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='order_details')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    options = models.ManyToManyField(Option, blank=True)
 
     def __str__(self):
         return f"{self.product.product_name} (x{self.quantity})"
+    def total_price(self):
+        option_total = sum(option.total_price() for option in self.order_detail_options.all())
+        return self.price + option_total
 
+class OrderDetailOption(models.Model):
+    order_detail = models.ForeignKey(OrderDetail, on_delete=models.CASCADE, related_name="order_detail_options")
+    option = models.ForeignKey(Option, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.order_detail} - {self.option.name} (x{self.quantity})"
+    def total_price(self):
+        return self.option.price * self.quantity
 class Payment(models.Model):
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="payment")
     amount = models.DecimalField(max_digits=10, decimal_places=2)

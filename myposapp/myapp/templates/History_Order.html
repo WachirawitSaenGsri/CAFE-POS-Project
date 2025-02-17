@@ -65,9 +65,9 @@
                             {% for detail in order.order_details.all %}
                                 <p class="text-sm">
                                     <span class="product-option">{{ detail.product.product_name }} x {{ detail.quantity }}</span>
-                                    {% if detail.options.all %}
-                                        {% for option in detail.options.all %}
-                                            <span class="product-option text-gray-600 text-sm">| {{ option.name }} x {{ option.quantity }}</span>
+                                    {% if detail.order_detail_options.all %}
+                                        {% for option in detail.order_detail_options.all %}
+                                            <span class="product-option text-gray-600 text-sm">| {{ option.option.name }} x {{ option.quantity }}</span>
                                         {% endfor %}
                                     {% endif %}
                                 </p>
