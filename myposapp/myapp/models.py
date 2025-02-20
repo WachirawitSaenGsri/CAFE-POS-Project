@@ -126,8 +126,7 @@ class OrderDetail(models.Model):
     def __str__(self):
         return f"{self.product.product_name} (x{self.quantity})"
     def total_price(self):
-        option_total = sum(option.total_price() for option in self.order_detail_options.all())
-        return self.price + option_total
+        return self.price
 
 class OrderDetailOption(models.Model):
     order_detail = models.ForeignKey(OrderDetail, on_delete=models.CASCADE, related_name="order_detail_options")

@@ -73,4 +73,5 @@ urlpatterns = [
     path('webhook/', views.stripe_webhook, name='stripe-webhook'),
     path('success/', views.payment_success, name='payment_success'),
     path('cancel/', views.payment_cancel, name='payment_cancel'),
+    path('generate_receipt/<int:order_id>/', views.generate_receipt, name='generate_receipt'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

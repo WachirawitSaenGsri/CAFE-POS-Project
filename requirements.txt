@@ -12,3 +12,4 @@ django-tailwind
 django-browser-reload
 django-dbml
 stripe
+reportlab

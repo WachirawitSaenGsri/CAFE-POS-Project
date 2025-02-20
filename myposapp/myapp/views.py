@@ -19,7 +19,13 @@ import stripe
 from django.conf import settings
 from django.utils import timezone
 from decimal import Decimal
-
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from django.http import HttpResponse
+from reportlab.lib.pagesizes import inch
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics  # แก้ไขที่นี่
+import os
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 def user_login(request):
@@ -382,6 +388,155 @@ def PayMent(request, order_id):
         'customer_points': customer_points,
         'points_config': points_config,
     })
+
+
+def generate_receipt(request, order_id):
+    # รับคำสั่งซื้อจากฐานข้อมูล
+    order = Order.objects.get(id=order_id)
+
+    # คำนวณราคาสั่งซื้อทั้งหมดและรายละเอียดคำสั่งซื้อ
+    total_order_price = Decimal(0)
+    order_details = []
+
+    for detail in order.order_details.all():
+        selected_options = detail.order_detail_options.all()
+        total_option_price = sum(opt.option.price * opt.quantity for opt in selected_options)
+        unit_price = detail.product.get_discounted_price() + total_option_price
+        total_item_price = unit_price * detail.quantity
+
+        order_details.append({
+            'product_name': detail.product.product_name,
+            'quantity': detail.quantity,
+            'unit_price': unit_price,
+            'total_item_price': total_item_price,
+            'options': [
+                {'name': opt.option.name, 'price': opt.option.price, 'quantity': opt.quantity}
+                for opt in selected_options
+            ],
+        })
+        total_order_price += total_item_price
+
+    # ดึงการกำหนดค่าคะแนน (บาทละกี่คะแนน)
+    points_config = PointsConfig.objects.first()
+    points_earned = 0
+    if points_config:
+        points_earned = int(total_order_price * points_config.points_per_baht)  # คำนวณคะแนนที่ได้รับ
+
+    # กำหนดขนาดของสลิปที่ต้องการ (80mm x 200mm = 3.15 inches x 7.87 inches)
+    width, height = 3.15 * inch, 7.87 * inch  # ขนาดที่ตั้งเป็นนิ้ว (inch)
+
+    # กำหนดการตั้งค่า PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="receipt_{order.id}.pdf"'
+
+    # ฟอนต์ที่ใช้
+    font_path = os.path.join('D:/CAFE-POS-Project1/THSarabunNew', 'THSarabunNew.ttf')  # ระบุ path ฟอนต์ที่คุณมี
+    pdfmetrics.registerFont(TTFont('THSarabun', font_path))
+
+    # สร้าง canvas ด้วยขนาดที่กำหนด
+    pdf = canvas.Canvas(response, pagesize=(width, height))
+
+    # กำหนดฟอนต์
+    pdf.setFont("THSarabun", 10)
+    thai_months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+
+    day_th = order.created_at.day
+    month_th = thai_months[order.created_at.month - 1]
+    year_th = order.created_at.year
+    # ข้อมูลส่วนหัว (ปรับตำแหน่งให้ตรงกลาง)
+    pdf.setFont("THSarabun", 10)
+    order_id_text = f"หมายเลขคำสั่งซื้อ: {order.id}"
+    customer_name_text = f"ชื่อลูกค้า: {order.customer_name}"
+    customer_phone_text = f"เบอร์โทรศัพท์: {order.customer_phone}"
+    date_text = f"วันที่: {day_th} {month_th} {year_th}"
+    store_name_text = f"ร้าน: {order.store.name}"
+
+    pdf.drawString((width - pdf.stringWidth(order_id_text)) / 2, height - 30, order_id_text)
+    pdf.drawString((width - pdf.stringWidth(customer_name_text)) / 2, height - 50, customer_name_text)
+    pdf.drawString((width - pdf.stringWidth(customer_phone_text)) / 2, height - 70, customer_phone_text)
+    pdf.drawString((width - pdf.stringWidth(date_text)) / 2, height - 90, date_text)
+    pdf.drawString((width - pdf.stringWidth(store_name_text)) / 2, height - 110, store_name_text)
+
+    # กำหนดตำแหน่งของตารางสินค้า
+    y_position = height - 130
+
+    # สร้างหัวตาราง
+    pdf.setFont("THSarabun", 10)
+    pdf.drawString(15, y_position, "สินค้า")
+    pdf.drawString(60, y_position, "ตัวเลือก")
+    pdf.drawString(110, y_position, "จำนวน")
+    pdf.drawString(140, y_position, "ราคาต่อหน่วย")
+    pdf.drawString(190, y_position, "ราคารวม")
+
+    # เปลี่ยนตำแหน่ง y เพื่อให้เขียนข้อมูลใต้หัวตาราง
+    y_position -= 20
+
+    # ฟังก์ชั่นเพื่อทำการแบ่งบรรทัดอัตโนมัติ
+    def wrap_text(text, width_limit):
+        lines = []
+        words = text.split(" | ")
+        current_line = words[0]
+
+        for word in words[1:]:
+            if pdf.stringWidth(current_line + " | " + word) < width_limit:
+                current_line += " | " + word
+            else:
+                lines.append(current_line)
+                current_line = word
+        lines.append(current_line)
+        return lines
+    # วนลูปผ่านรายละเอียดคำสั่งซื้อ
+    pdf.setFont("THSarabun", 9)
+    for detail in order_details:
+        product_name = detail['product_name']
+        quantity = detail['quantity']
+        unit_price = detail['unit_price']
+        total_price = detail['total_item_price']
+        options = " | ".join([f"{opt['name']} x {opt['quantity']}" for opt in detail['options']])
+
+        # แสดงข้อมูลสินค้าในตาราง
+        pdf.drawString(15, y_position, product_name)
+        pdf.drawString(120, y_position, str(quantity))
+        pdf.drawString(150, y_position, f"{unit_price:.2f} ฿")
+        pdf.drawString(190, y_position, f"{total_price:.2f} ฿")
+
+        # แบ่งตัวเลือกเป็นหลายบรรทัดหากข้อความยาวเกินไป
+        options_lines = wrap_text(options if options else "ไม่มีตัวเลือก", 60)
+
+        # แสดงตัวเลือกที่ย้ายไปยังตำแหน่งที่ต้องการ
+        for line in options_lines:
+            pdf.drawString(60, y_position, line)
+            y_position -= 15  # ลดตำแหน่ง y ลงเพื่อไปที่บรรทัดถัดไป
+
+        # ย้ายลงมาทีละ 20
+        y_position -= 20
+
+        # เพิ่มการตรวจสอบว่า y_position ต่ำไปหรือไม่
+        if y_position < 40:
+            pdf.showPage()
+            pdf.setFont("THSarabun", 9)
+            y_position = height - 30
+            pdf.drawString(20, y_position, f"หมายเลขคำสั่งซื้อ: {order.id}")
+            y_position -= 20
+
+    # ข้อมูลส่วนท้าย
+    y_position -= 40
+    pdf.setFont("THSarabun", 12)
+    pdf.drawString(10, y_position, f"ราคาสั่งซื้อทั้งหมด: {total_order_price:.2f} ฿")
+    pdf.drawString(10, y_position - 20, f"คะแนนที่ได้รับ: {points_earned} แต้ม")
+
+    # เพิ่มเส้นขอบ (เพื่อความสวยงาม)
+    pdf.setLineWidth(0.5)
+    pdf.line(10, height - 10, width - 10, height - 10)
+    pdf.line(10, height - 120, width - 10, height - 120)
+    pdf.line(10, height - 140, width - 10, height - 140)
+
+    # สร้าง PDF และส่งออก
+    pdf.showPage()
+    pdf.save()
+
+    return response
 
 @login_required
 def print_receipt(request, order_id):

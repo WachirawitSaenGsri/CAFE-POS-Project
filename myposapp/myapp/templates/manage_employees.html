@@ -328,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => response.json())
             .then(data => {
                 document.getElementById('totalOrders').textContent = data.total_orders;
-                document.getElementById('totalRevenue').textContent = Number(data.total_revenue).toFixed(2);
+                document.getElementById('totalRevenue').textContent = Number(data.total_revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 document.getElementById('averageOrderValue').textContent = Number(data.average_order_value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             })
             .catch(error => console.error('Error fetching performance data:', error));
