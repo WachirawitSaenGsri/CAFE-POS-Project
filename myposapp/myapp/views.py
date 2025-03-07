@@ -430,7 +430,7 @@ def generate_receipt(request, order_id):
     response['Content-Disposition'] = f'attachment; filename="receipt_{order.id}.pdf"'
 
     # ฟอนต์ที่ใช้
-    font_path = os.path.join('D:/CAFE-POS-Project1/THSarabunNew', 'THSarabunNew.ttf')  # ระบุ path ฟอนต์ที่คุณมี
+    font_path = os.path.join('D:/CAFE-POS-Project/THSarabunNew', 'THSarabunNew.ttf')  # ระบุ path ฟอนต์ที่คุณมี
     pdfmetrics.registerFont(TTFont('THSarabun', font_path))
 
     # สร้าง canvas ด้วยขนาดที่กำหนด
@@ -948,7 +948,6 @@ def add_to_order(request):
             base_price = product.get_discounted_price() * quantity
             total_option_price = 0
 
-
             # ตรวจสอบว่ามี OrderDetail เดิมที่ไม่มีตัวเลือกอยู่หรือไม่
             if not options:
                 order_detail = OrderDetail.objects.filter(
@@ -988,13 +987,6 @@ def add_to_order(request):
                     option=option,
                     defaults={'quantity': option_quantity}
                 )
-
-                if not created:
-                    # ถ้ามีอยู่แล้ว และจำนวนที่เลือกตรงกัน ไม่ต้องเพิ่ม
-                    if order_detail_option.quantity != option_quantity:
-                        order_detail_option.quantity += option_quantity
-                        order_detail_option.save()
-
 
                 # คำนวณราคาตัวเลือกทั้งหมด
                 total_option_price += order_detail_option.total_price()
