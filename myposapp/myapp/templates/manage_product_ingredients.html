@@ -35,14 +35,13 @@
       <h2 class="text-2xl font-semibold text-gray-800 mb-6">เพิ่มส่วนผสมใหม่ให้กับโปรดักส์นี้</h2>
       <form method="POST">
         {% csrf_token %}
-        <div class="mb-4">
-          <label for="product" class="block text-sm font-medium text-gray-700">เลือกเมนู</label>
-          <select name="product" id="product" class="w-full p-3 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-            {% for product in products %}
-              <option value="{{ product.id }}" {% if product.id == form.product.value %} selected {% endif %}>{{ product.product_name }}</option>
-            {% endfor %}
-          </select>
-        </div>
+          <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700">เมนู</label>
+              <p class="mt-2 p-3 bg-gray-100 border border-gray-300 rounded-md text-gray-800">
+                  {{ product.product_name }}
+              </p>
+          </div>
+      <input type="hidden" name="product" value="{{ product.id }}">
         <!-- Form Fields -->
         <div class="mb-4">
           <label for="ingredient" class="block text-sm font-medium text-gray-700">เลือกวัตถุดิบ</label>

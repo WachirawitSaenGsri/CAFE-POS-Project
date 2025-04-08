@@ -267,7 +267,7 @@ def create_checkout_session(request):
                         'product_data': {
                             'name': f'Order #{order_id}',
                         },
-                        'unit_amount': int(amount * 100),  # Convert to cents
+                        'unit_amount': int(amount * 100),
                     },
                     'quantity': 1,
                 }],
@@ -430,7 +430,7 @@ def generate_receipt(request, order_id):
     response['Content-Disposition'] = f'attachment; filename="receipt_{order.id}.pdf"'
 
     # ฟอนต์ที่ใช้
-    font_path = os.path.join('D:/CAFE-POS-Project/THSarabunNew', 'THSarabunNew.ttf')  # ระบุ path ฟอนต์ที่คุณมี
+    font_path = os.path.join('D:/CAFE-POS-Project1/THSarabunNew', 'THSarabunNew.ttf')  # ระบุ path ฟอนต์ที่คุณมี
     pdfmetrics.registerFont(TTFont('THSarabun', font_path))
 
     # สร้าง canvas ด้วยขนาดที่กำหนด
